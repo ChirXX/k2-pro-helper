@@ -6,7 +6,7 @@
    Управление (если включено в настройках принтера): пауза, продолжение, стоп, подсветка, температуры, скорость.
    Опасные действия — только после подтверждения. */
 const PR_TYPES=[['creality','Creality K1 / K2 / Hi / Ender-3 V3'],['moonraker','Klipper (Moonraker): Voron, Qidi, Sovol…']];
-const PS={gen:0,form:null,idx:0,ws:null,timer:null,hb:null,data:{},type:'',at:0,status:'off',err:'',cam:false,camPc:null,triedNoProto:false,lastState:'',startedFor:-1};
+const PS={notif:{},job:null,gen:0,form:null,idx:0,ws:null,timer:null,hb:null,data:{},type:'',at:0,status:'off',err:'',cam:false,camPc:null,triedNoProto:false,lastState:'',startedFor:-1};
 const prList=()=>store.get('k2printers',[]);
 const tfmt=s=>{s=Math.max(0,Math.round(+s||0));const h=Math.floor(s/3600),m=Math.floor(s%3600/60);return h?`${h} ч ${m} мин`:m?`${m} мин`:`${s} с`};
 const num=v=>{const n=parseFloat(v);return isFinite(n)?n:null};
@@ -31,7 +31,7 @@ function crealityView(d){
     noz:num(d.nozzleTemp),nozT:num(d.targetNozzleTemp),bed:num(d.bedTemp0),bedT:num(d.targetBedTemp0),
     box:num(d.boxTemp),boxT:num(d.targetBoxTemp),fan:num(d.modelFanPct),speed:num(d.curFeedratePct),
     light:d.lightSw==null?null:+d.lightSw===1,err,model:d.model||'',host:d.hostname||'',
-    maxNoz:num(d.maxNozzleTemp)||300,maxBed:num(d.maxBedTemp)||100,maxBox:num(d.maxBoxTemp)||60,boxCtl:'targetBoxTemp' in d&&'maxBoxTemp' in d,
+    mm:num(d.usedMaterialLength),maxNoz:num(d.maxNozzleTemp)||300,maxBed:num(d.maxBedTemp)||100,maxBox:num(d.maxBoxTemp)||60,boxCtl:'targetBoxTemp' in d&&'maxBoxTemp' in d,
     cam:+d.webrtcSupport===1||/^(F008|F012|F021)$/.test(String(d.model||''))||/k2/i.test(String(d.model||''))?'webrtc':'mjpeg'};
 }
 function moonView(r){
@@ -46,7 +46,7 @@ function moonView(r){
     left:p>0.02&&el?el/p-el:null,noz:num(ex.temperature),nozT:num(ex.target),bed:num(hb.temperature),bedT:num(hb.target),
     box:num(ch.temperature),boxT:num(ch.target),fan:r.fan?Math.round((+r.fan.speed||0)*100):null,
     speed:r.gcode_move&&num(r.gcode_move.speed_factor)!=null?r.gcode_move.speed_factor*100:null,light:null,
-    maxNoz:300,maxBed:120,maxBox:70,boxCtl:!!PS.moonChamber,
+    mm:num(ps.filament_used),maxNoz:300,maxBed:120,maxBox:70,boxCtl:!!PS.moonChamber,
     err:ps.state==='error'?1:0,errMsg:ps.message||'',model:'Klipper',host:'',cam:'moon'};
 }
 const ST_TXT={printing:['🟢','Печатает'],preparing:['🟡','Готовится к печати'],paused:['⏸️','Пауза'],done:['✅','Печать завершена'],
@@ -108,8 +108,34 @@ function onTelemetry(v){
   // завершение печати — маленький праздник
   if(PS.lastState&&PS.lastState!=='done'&&v.s==='done'){confetti();buzz([30,80,30]);toast('Печать готова! 🎉')}
   if(PS.lastState&&PS.lastState!=='error'&&v.s==='error'){buzz([200,100,200]);toast('Принтер сообщает об ошибке ⚠️')}
+  const P=prList()[PS.idx];
+  if(P){
+    try{jAuto(P,v,PS.job)}catch(e){}
+    notifySync(P,v);
+  }
+  // помним последнюю активную печать — чтобы записать её, если её остановят
+  if(['printing','paused','preparing'].includes(v.s)&&v.file)PS.job={file:v.file,elapsed:v.elapsed,mm:v.mm};
+  else if(v.s!=='done')PS.job=null;
   PS.lastState=v.s;lastView=v;renderPrinter();
 }
+
+/* уведомление «печать готова» — планируется на время окончания, приходит даже при закрытом приложении */
+const LN=()=>window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.LocalNotifications;
+const nid=P=>{let h=0;for(const c of P.host)h=(h*31+c.charCodeAt(0))%90000;return 10000+h};
+async function notifySync(P,v){
+  const ln=LN();if(!ln)return;const id=nid(P);
+  if(P.nt===false||!(v.s==='printing'&&v.left>90)){
+    if(PS.notif[id]>Date.now()){ln.cancel({notifications:[{id}]}).catch(()=>{})}PS.notif[id]=0;return}
+  const at=Date.now()+v.left*1000;
+  if(PS.notif[id]&&Math.abs(PS.notif[id]-at)<180000)return;
+  PS.notif[id]=at;
+  try{const p=await ln.checkPermissions();if(p.display!=='granted')return;
+    await ln.schedule({notifications:[{id,title:'Печать должна быть готова ✅',
+      body:`«${v.file}» на «${P.n||P.host}» — по расчёту принтера. Загляни проверить!`,schedule:{at:new Date(at),allowWhileIdle:true}}]})}
+  catch(e){}
+}
+async function askNotify(){const ln=LN();if(!ln)return;
+  try{const p=await ln.checkPermissions();if(p.display!=='granted'){const r=await ln.requestPermissions();if(r.display!=='granted')toast('Без разрешения уведомления не придут — его можно дать в настройках Android')}}catch(e){}}
 function tickStatus(){const el=$('pr-upd');if(el&&PS.at)el.textContent=updText()}
 const updText=()=>{const s=Math.round((Date.now()-PS.at)/1000);return s<3?'обновлено только что':'обновлено '+tfmt(s)+' назад'};
 const prVisible=()=>$('s-my').classList.contains('active')&&!$('my-printer').hidden&&!document.hidden;
@@ -156,12 +182,13 @@ async function camWebRTC(P,box){
 
 /* ---------- отрисовка ---------- */
 function prForm(i){
-  const P=i>=0?prList()[i]:{n:'',host:'',type:'creality',ctl:true};
+  const P=i>=0?prList()[i]:{n:'',host:'',type:'creality',ctl:true,nt:true};
   return `<div class="card open" id="pr-form"><div class="card-b" style="display:block;border:none;padding-top:6px">
     <label class="fl">Название</label><input class="f" id="pf-n" placeholder="Например, «K2 Pro в гараже»" value="${esc(P.n)}">
     <label class="fl">IP-адрес принтера</label><input class="f" id="pf-h" inputmode="url" autocomplete="off" placeholder="192.168.1.50" value="${esc(P.host)}">
     <label class="fl">Тип</label><select class="f" id="pf-t">${PR_TYPES.map(([v,l])=>`<option value="${v}" ${v===P.type?'selected':''}>${l}</option>`).join('')}</select>
     <label class="ck"><input type="checkbox" id="pf-c" ${P.ctl!==false?'checked':''}> Разрешить управление: пауза, стоп, температуры, скорость, подсветка</label>
+    <label class="ck"><input type="checkbox" id="pf-nt" ${P.nt!==false?'checked':''}> Уведомить, когда печать должна закончиться — даже если приложение закрыто</label>
     <div class="tip">💡 IP-адрес показан на экране принтера в настройках сети (Wi-Fi / LAN). Телефон должен быть в той же Wi-Fi сети. Лучше закрепить за принтером постоянный адрес в роутере.</div>
     <div class="row">${prList().length?'<button class="btn2" id="pf-cancel">Передумал</button>':''}<button class="btn2 acc" id="pf-save" data-i="${i}">Подключить</button></div>
   </div></div>`;
@@ -218,9 +245,9 @@ $('my-printer').addEventListener('click',e=>{
     if(L.length)prConnect();else renderPrinter();buzz(15);
     toast(`«${gone.n||gone.host}» удалён`,()=>{const L2=prList();L2.splice(i,0,gone);store.set('k2printers',L2);PS.idx=i;prConnect()});return}
   const sv=t.closest('#pf-save');if(sv){
-    const ctl=$('pf-c').checked,n=$('pf-n').value.trim(),host=$('pf-h').value.trim().replace(/^[a-z]+:\/\//i,'').replace(/[:/].*$/,''),type=$('pf-t').value;
+    const ctl=$('pf-c').checked,nt=$('pf-nt').checked,n=$('pf-n').value.trim(),host=$('pf-h').value.trim().replace(/^[a-z]+:\/\//i,'').replace(/[:/].*$/,''),type=$('pf-t').value;
     if(!validHost(host)){shake($('pf-h'));toast('Похоже, адрес с опечаткой. Пример: 192.168.1.50');return}
-    const L=prList(),i=+sv.dataset.i,P={n,host,type,ctl};
+    const L=prList(),i=+sv.dataset.i,P={n,host,type,ctl,nt};if(nt)askNotify();
     if(i>=0)L[i]=P;else L.push(P);store.set('k2printers',L);PS.idx=i>=0?i:L.length-1;store.set('k2printerIdx',PS.idx);
     PS.form=null;PS.cam=false;buzz(10);prConnect();
   }

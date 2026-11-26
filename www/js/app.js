@@ -21,13 +21,23 @@ function toast(msg,undo){
 function shake(el){el.classList.remove('shake');void el.offsetWidth;el.classList.add('shake');setTimeout(()=>el.classList.remove('shake'),450);el.focus()}
 function confetti(){
   if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
-  const cols=['#FF8F52','#62DCA0','#8CC8FF','#FFC766','#F4EFE9'];
+  const cols=['#3DDC84','#A7F3C9','#EDF1EE','#22C55E','#F5C451'];
   for(let i=0;i<36;i++){const c=document.createElement('i');c.className='confetti';
     c.style.left=Math.random()*100+'vw';c.style.background=cols[i%cols.length];
     c.style.animationDuration=(1.6+Math.random()*1.4)+'s';c.style.animationDelay=Math.random()*.3+'s';
     document.body.appendChild(c);setTimeout(()=>c.remove(),3600)}
 }
 const emptyBox=(ico,title,text,btn)=>`<div class="empty"><span class="e-ico">${ico}</span><b>${title}</b>${text}${btn?'<br>'+btn:''}</div>`;
+
+/* тема: тёмная → светлая → как в системе */
+const THEMES=[['dark','🌙','Тёмная тема'],['light','☀️','Светлая тема'],['auto','🌗','Как в системе']];
+function applyTheme(t){document.documentElement.dataset.theme=t;const T=THEMES.find(x=>x[0]===t)||THEMES[0];$('theme').textContent=T[1];
+  const light=t==='light'||(t==='auto'&&matchMedia('(prefers-color-scheme: light)').matches);
+  document.querySelector('meta[name=theme-color]').content=light?'#F3F5F4':'#0A0C0B'}
+applyTheme(store.get('k2theme','dark'));
+$('theme').onclick=()=>{const i=THEMES.findIndex(x=>x[0]===store.get('k2theme','dark')),n=THEMES[(i+1)%THEMES.length];
+  store.set('k2theme',n[0]);applyTheme(n[0]);buzz(6);toast(n[2])};
+matchMedia('(prefers-color-scheme: light)').addEventListener('change',()=>applyTheme(store.get('k2theme','dark')));
 
 /* приветствие по времени суток */
 (function(){const h=new Date().getHours();
@@ -219,13 +229,13 @@ function renderG(){
     return;
   }
   const S=GUIDE.find(s=>s.sec===gs)||GUIDE[0];
-  if(S.tools){$('glist').innerHTML=toolsHTML();document.querySelectorAll('#glist .card').forEach(c=>c.classList.add('open'));calc();return}
+  if(S.tools){$('glist').innerHTML=`<div class="chips-lbl">Калькуляторы</div>`+toolsHTML()+calibHTML();calc();calibCalc();return}
   $('glist').innerHTML=S.items.map(a=>card(a.i,a.t,a.s,a.b)).join('');
 }
 $('gsecs').onclick=e=>{const b=e.target.closest('.chip');if(!b)return;gs=b.dataset.v;$('gq').value='';renderG()};
 $('gq').oninput=renderG;
-$('glist').addEventListener('input',e=>{if(e.target.id&&e.target.id.startsWith('c-'))calc()});
-$('glist').addEventListener('change',e=>{if(e.target.id==='c-mat')calc()});
+$('glist').addEventListener('input',e=>{if(e.target.id&&e.target.id.startsWith('c-'))calc();if(e.target.id&&e.target.id.startsWith('k-'))calibCalc()});
+$('glist').addEventListener('change',e=>{if(e.target.id==='c-mat')calc();if(e.target.id==='k-fw')calibCalc()});
 
 /* ================= ВИДЕО ================= */
 // RSS-ленты YouTube. На телефоне запросы идут через CapacitorHttp (обходит CORS).
@@ -393,6 +403,7 @@ $('nlist').onclick=e=>{const d=e.target.closest('.del');if(!d)return;
 $('myseg').onclick=e=>{const b=e.target.closest('button');if(!b)return;
   [...$('myseg').children].forEach(x=>x.classList.toggle('on',x===b));
   $('my-care').hidden=b.dataset.v!=='care';$('my-notes').hidden=b.dataset.v!=='notes';$('my-printer').hidden=b.dataset.v!=='printer';
+  $('my-journal').hidden=b.dataset.v!=='journal';if(b.dataset.v==='journal')renderJournal();
   if(b.dataset.v==='printer')prShow();else prHide()};
 
 /* ================= ОБЩЕЕ ================= */

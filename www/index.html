@@ -3,13 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#15131A">
+<meta name="theme-color" content="#0A0C0B">
+<script>document.documentElement.dataset.theme=(function(){try{return JSON.parse(localStorage.getItem("k2theme"))||"dark"}catch(e){return "dark"}})()</script>
 <title>3D Помощник</title>
 <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
 <header>
-  <div class="brand"><div class="logo" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M11 4h10v5h-10z" fill="#2A1408"/><path d="M13 9h6l-2 4h-2z" fill="#2A1408"/><rect x="5" y="16" width="12" height="3.4" rx="1.7" fill="#fff"/><rect x="5" y="21" width="22" height="3.4" rx="1.7" fill="#FFE3D2"/><rect x="5" y="26" width="22" height="3.4" rx="1.7" fill="#FFCDB0"/></svg></div><div><h1>3D Помощник</h1><small id="greet">Справочник по 3D-печати</small></div></div>
+  <div class="brand"><div class="logo" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M11 4h10v5h-10z" fill="#04140B"/><path d="M13 9h6l-2 4h-2z" fill="#04140B"/><rect x="5" y="16" width="12" height="3.4" rx="1.7" fill="#fff"/><rect x="5" y="21" width="22" height="3.4" rx="1.7" fill="#D1FAE5"/><rect x="5" y="26" width="22" height="3.4" rx="1.7" fill="#A7F3D0"/></svg></div><div><h1>3D Помощник</h1><small id="greet">Справочник по 3D-печати</small></div><button class="thm" id="theme" aria-label="Тема оформления">🌙</button></div>
 </header>
 
 <main>
@@ -115,11 +116,16 @@
 
   <!-- МОЁ -->
   <section id="s-my">
-    <div class="seg" id="myseg"><button data-v="printer" class="on">📡 Принтер</button><button data-v="care">Уход</button><button data-v="notes">Заметки</button></div>
+    <div class="seg" id="myseg"><button data-v="printer" class="on">📡 Принтер</button><button data-v="journal">📒 Журнал</button><button data-v="care">Уход</button><button data-v="notes">Заметки</button></div>
     <div id="my-printer">
       <h2>Мой принтер</h2>
       <p class="sub">Следи за печатью с телефона: температура, прогресс, сколько осталось.</p>
       <div id="pr-body"></div>
+    </div>
+    <div id="my-journal" hidden>
+      <h2>Журнал печати</h2>
+      <p class="sub">Что печатал, сколько ушло времени и пластика, и во что это обошлось.</p>
+      <div id="j-body"></div>
     </div>
     <div id="my-care" hidden>
       <h2>Забота о принтере</h2>
@@ -152,9 +158,11 @@
 <script src="js/printers.js"></script>
 <script src="js/materials.js"></script>
 <script src="js/guide.js"></script>
+<script src="js/calib.js"></script>
 <script src="js/videos.js"></script>
 <script src="js/app.js"></script>
 <script src="js/models.js"></script>
 <script src="js/printer.js"></script>
+<script src="js/journal.js"></script>
 </body>
 </html>

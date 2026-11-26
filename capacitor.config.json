@@ -3,13 +3,17 @@
   "appName": "3D Помощник",
   "webDir": "www",
   "android": {
-    "backgroundColor": "#15131A",
+    "backgroundColor": "#0A0C0B",
     "adjustMarginsForEdgeToEdge": "force",
     "allowMixedContent": true
   },
   "plugins": {
     "CapacitorHttp": {
       "enabled": true
+    },
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_print",
+      "iconColor": "#16A34A"
     }
   }
 }
