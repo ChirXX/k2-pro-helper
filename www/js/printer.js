@@ -253,7 +253,7 @@ $('my-printer').addEventListener('click',e=>{
   }
 });
 document.addEventListener('visibilitychange',()=>{if(document.hidden)prDisconnect();else if(prVisible()&&PS.form==null)prConnect()});
-function prShow(){PS.idx=Math.min(store.get('k2printerIdx',0),Math.max(0,prList().length-1));if(PS.form==null)prConnect();else renderPrinter()}
+function prShow(){if(!store.get('k2ntAsked',false)&&prList().some(p=>p.nt!==false)&&LN()){store.set('k2ntAsked',true);askNotify()}PS.idx=Math.min(store.get('k2printerIdx',0),Math.max(0,prList().length-1));if(PS.form==null)prConnect();else renderPrinter()}
 function prHide(){prDisconnect();PS.status='off'}
 
 /* ---------- управление ---------- */
