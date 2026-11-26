@@ -1,9 +1,9 @@
 {
   "appId": "ee.home.k2prohelper",
-  "appName": "K2 Pro Помощник",
+  "appName": "3D Помощник",
   "webDir": "www",
   "android": {
-    "backgroundColor": "#0E1116",
+    "backgroundColor": "#15131A",
     "adjustMarginsForEdgeToEdge": "force"
   },
   "plugins": {

@@ -3,21 +3,22 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0E1116">
-<title>K2 Pro Помощник</title>
+<meta name="theme-color" content="#15131A">
+<title>3D Помощник</title>
 <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
 <header>
-  <div class="brand"><div class="logo">K2</div><div><h1>K2 Pro Помощник</h1><small>Справочник по 3D-печати</small></div></div>
+  <div class="brand"><div class="logo" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M11 4h10v5h-10z" fill="#2A1408"/><path d="M13 9h6l-2 4h-2z" fill="#2A1408"/><rect x="5" y="16" width="12" height="3.4" rx="1.7" fill="#fff"/><rect x="5" y="21" width="22" height="3.4" rx="1.7" fill="#FFE3D2"/><rect x="5" y="26" width="22" height="3.4" rx="1.7" fill="#FFCDB0"/></svg></div><div><h1>3D Помощник</h1><small id="greet">Справочник по 3D-печати</small></div></div>
 </header>
 
 <main>
   <!-- ПРОБЛЕМЫ -->
   <section id="s-problems" class="active">
     <h2>Что случилось?</h2>
-    <p class="sub">Найди симптом. Меняй одну настройку за раз.</p>
-    <input class="search" id="q" type="search" placeholder="Поиск: не липнет, паутина, щелчки…" autocomplete="off">
+    <p class="sub">Опиши, что видишь, — подскажу, как починить. Меняй по одной настройке за раз: так проще найти виновника.</p>
+    <div class="daytip" id="daytip"></div>
+    <input class="search" id="q" type="search" placeholder="Например: не липнет, паутина, щёлкает…" autocomplete="off">
     <div class="chips" id="pcats"></div>
     <div class="chips-lbl">Мой принтер</div>
     <div class="chips alt" id="pbrands"></div>
@@ -27,7 +28,7 @@
   <!-- ПРИНТЕРЫ -->
   <section id="s-printers">
     <h2>Принтеры</h2>
-    <p class="sub">Популярные модели: характеристики, особенности и советы.</p>
+    <p class="sub">Знакомься с машинами: сильные стороны, капризы и как с ними подружиться.</p>
     <div class="chips" id="prbrands"></div>
     <div id="prlist"></div>
     <div class="warn">⚠️ Характеристики — по данным производителей. Модели обновляются: точные данные и инструкции смотри на официальном сайте (указан в карточке).</div>
@@ -38,17 +39,17 @@
     <h2>Материалы</h2>
     <div class="seg" id="mseg"><button data-v="mat" class="on">Пластики</button><button data-v="brands">Производители</button></div>
     <div id="m-mat">
-      <p class="sub">Стартовые значения. Сверяйся с этикеткой катушки.</p>
+      <p class="sub">Хорошие стартовые значения. Но этикетка на катушке всё равно главнее.</p>
       <div class="chips" id="mgroups"></div>
       <div id="matlist"></div>
       <div class="warn">⚠️ У разных производителей диапазоны отличаются: смотри этикетку и печатай температурную башню для новой марки. Максимальные температуры своего принтера проверь в его карточке.</div>
     </div>
     <div id="m-brands" hidden>
-      <p class="sub">Популярные марки и твои поставщики.</p>
-      <input class="search" id="bq" type="search" placeholder="Поиск: марка, материал, страна…" autocomplete="off">
+      <p class="sub">Проверенные марки и твои любимые магазины — всё в одном месте.</p>
+      <input class="search" id="bq" type="search" placeholder="Марка, материал или страна…" autocomplete="off">
       <button class="btn" id="sup-toggle" style="margin-top:0">＋ Добавить своего поставщика</button>
       <div class="card" id="sup-form" hidden><div style="padding:4px 16px 16px">
-        <label class="fl">Название *</label><input class="f" id="sf-n" placeholder="Напр. «Магазин 3D-пластика у дома»">
+        <label class="fl">Название *</label><input class="f" id="sf-n" placeholder="Например, «Пластик у дома»">
         <label class="fl">Сайт или контакт</label><input class="f" id="sf-site" placeholder="example.com, телефон, Telegram">
         <label class="fl">Материалы</label><input class="f" id="sf-mat" placeholder="PLA, PETG, TPU…">
         <div class="fgrid">
@@ -56,7 +57,7 @@
           <div><label>Оценка</label><select class="f" id="sf-r"><option value="0">—</option><option value="5">★★★★★</option><option value="4">★★★★</option><option value="3">★★★</option><option value="2">★★</option><option value="1">★</option></select></div>
         </div>
         <label class="fl">Заметка</label><textarea id="sf-note" placeholder="Качество, доставка, скидки, какие цвета понравились…"></textarea>
-        <div class="row"><button class="btn2" id="sf-cancel">Отмена</button><button class="btn2 acc" id="sf-save">Сохранить</button></div>
+        <div class="row"><button class="btn2" id="sf-cancel">Передумал</button><button class="btn2 acc" id="sf-save">Сохранить</button></div>
       </div></div>
       <div id="suplist"></div>
       <div id="brandlist"></div>
@@ -66,8 +67,8 @@
   <!-- СПРАВОЧНИК -->
   <section id="s-guide">
     <h2>Справочник</h2>
-    <p class="sub">Основы, настройки, калибровка и полезные приёмы.</p>
-    <input class="search" id="gq" type="search" placeholder="Поиск по справочнику…" autocomplete="off">
+    <p class="sub">От первого включения до тонкой настройки — простыми словами.</p>
+    <input class="search" id="gq" type="search" placeholder="Что хочешь узнать?" autocomplete="off">
     <div class="chips" id="gsecs"></div>
     <div id="glist"></div>
   </section>
@@ -75,13 +76,14 @@
   <!-- ВИДЕО -->
   <section id="s-video">
     <h2>Видео</h2>
+    <p class="sub">Идеи для печати и разборы поломок от тех, кто уже набил шишки.</p>
     <div class="seg" id="vseg"><button data-v="fun" class="on">Модели и идеи</button><button data-v="fix">Решение проблем</button></div>
     <div class="chips alt" id="vlang"></div>
     <div class="chips" id="vchans"></div>
     <div class="vbar"><span id="vstatus" class="vstatus"></span><button class="reset" id="vrefresh">↻ Обновить</button></div>
     <div id="vlist"></div>
     <div class="card" style="margin-top:14px">
-      <div class="card-h"><div class="ico">➕</div><div class="t"><b>Мои каналы</b><span>добавь любимый канал YouTube</span></div><div class="chev">▸</div></div>
+      <div class="card-h"><div class="ico">➕</div><div class="t"><b>Мои каналы</b><span>добавь любимого автора с YouTube</span></div><div class="chev">▸</div></div>
       <div class="card-b">
         <label class="fl">Ссылка, @имя или ID канала</label>
         <input class="f" id="vc-in" placeholder="https://www.youtube.com/@CNCKitchen" autocomplete="off">
@@ -92,24 +94,24 @@
         <div id="vc-list"></div>
       </div>
     </div>
-    <p class="sub" style="margin-top:12px">Ролики открываются в приложении YouTube или в браузере. Лента обновляется при наличии интернета, последние загруженные видео сохраняются на телефоне.</p>
+    <p class="sub" style="margin-top:12px">Ролики открываются в приложении YouTube. Без интернета покажу то, что уже успел загрузить.</p>
   </section>
 
   <!-- МОЁ -->
   <section id="s-my">
     <div class="seg" id="myseg"><button data-v="care" class="on">Уход</button><button data-v="notes">Заметки</button></div>
     <div id="my-care">
-      <h2>Обслуживание</h2>
-      <p class="sub">Отмечай сделанное. Отметки сохраняются на телефоне.</p>
+      <h2>Забота о принтере</h2>
+      <p class="sub">Пять минут ухода экономят часы ремонта. Отметки хранятся только у тебя на телефоне.</p>
       <div id="mlist"></div>
     </div>
     <div id="my-notes" hidden>
-      <h2>Мои настройки</h2>
-      <p class="sub">Записывай удачные профили, марки пластика и находки.</p>
+      <h2>Мои рецепты</h2>
+      <p class="sub">Нашёл идеальные настройки? Запиши, пока не забыл.</p>
       <input class="f" id="nt" placeholder="Название, напр. «PETG Bestfilament чёрный»">
       <div style="height:8px"></div>
       <textarea id="nb" placeholder="Сопло 240 °C, стол 75 °C, обдув 40 %, скорость…"></textarea>
-      <button class="btn" id="nadd">Сохранить заметку</button>
+      <button class="btn" id="nadd">Запомнить</button>
       <div id="nlist"></div>
     </div>
   </section>
@@ -123,6 +125,7 @@
   <button data-s="s-video"><span class="ni">🎬</span>Видео</button>
   <button data-s="s-my"><span class="ni">📝</span>Моё</button>
 </nav>
+<div id="toast" role="status" aria-live="polite"><span></span><button hidden></button></div>
 
 <script src="js/problems.js"></script>
 <script src="js/printers.js"></script>

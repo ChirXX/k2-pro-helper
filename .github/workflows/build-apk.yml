@@ -53,20 +53,20 @@ jobs:
           "$SIGNER" verify --print-certs "$APK" | tee signer.txt
           # Отпечаток постоянного ключа. Если не совпал — обновление не встанет поверх, релиз не публикуем.
           grep -qi "SHA-256 digest: 8737f16f40956d7c96d8bc20ea7b05b69b81b74a52c70640a8dec390492d651b" signer.txt
-          cp "$APK" K2-Pro-Pomoshnik.apk
+          cp "$APK" 3D-Pomoshnik.apk
           rm -f "$RUNNER_TEMP/k2-release.p12"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: K2-Pro-Pomoshnik-apk
-          path: K2-Pro-Pomoshnik.apk
+          name: 3D-Pomoshnik-apk
+          path: 3D-Pomoshnik.apk
 
       - name: Опубликовать как релиз
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v1.0.${{ github.run_number }}
-          name: K2 Pro Помощник v1.0.${{ github.run_number }}
-          files: K2-Pro-Pomoshnik.apk
+          name: 3D Помощник v1.0.${{ github.run_number }}
+          files: 3D-Pomoshnik.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

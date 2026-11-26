@@ -1,4 +1,4 @@
-/* K2 Pro Помощник — логика интерфейса */
+/* 3D Помощник — логика интерфейса */
 const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const $=id=>document.getElementById(id);
@@ -7,11 +7,33 @@ const li=a=>a.map(x=>`<li>${x}</li>`).join('');
 const card=(i,t,s,body)=>`<div class="card"><div class="card-h"><div class="ico">${i}</div><div class="t"><b>${t}</b><span>${s||''}</span></div><div class="chev">▸</div></div><div class="card-b">${body}</div></div>`;
 const chips=(list,cur,attr='v')=>list.map(([v,l])=>`<button class="chip ${v===cur?'on':''}" data-${attr}="${esc(v)}">${l}</button>`).join('');
 const link=site=>`<a href="https://${site}" target="_blank" rel="noopener">${site}</a>`;
-function twoTapDelete(btn){ // true — если подтверждено
-  if(btn.classList.contains('sure'))return true;
-  btn.classList.add('sure');btn.dataset.t=btn.textContent;btn.textContent='Удалить?';
-  setTimeout(()=>{btn.classList.remove('sure');btn.textContent=btn.dataset.t||'×'},2500);return false;
+/* --- живая обратная связь: вибро, тост с «Вернуть», конфетти, тряска поля --- */
+const buzz=ms=>{try{navigator.vibrate&&navigator.vibrate(ms)}catch(e){}};
+let toastT;
+function hideToast(){$('toast').classList.remove('show')}
+function toast(msg,undo){
+  const t=$('toast'),b=t.querySelector('button');
+  t.querySelector('span').textContent=msg;
+  b.hidden=!undo;b.textContent='Вернуть';
+  b.onclick=()=>{hideToast();if(undo){undo();buzz(8)}};
+  t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(hideToast,undo?5000:2600);
 }
+function shake(el){el.classList.remove('shake');void el.offsetWidth;el.classList.add('shake');setTimeout(()=>el.classList.remove('shake'),450);el.focus()}
+function confetti(){
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  const cols=['#FF8F52','#62DCA0','#8CC8FF','#FFC766','#F4EFE9'];
+  for(let i=0;i<36;i++){const c=document.createElement('i');c.className='confetti';
+    c.style.left=Math.random()*100+'vw';c.style.background=cols[i%cols.length];
+    c.style.animationDuration=(1.6+Math.random()*1.4)+'s';c.style.animationDelay=Math.random()*.3+'s';
+    document.body.appendChild(c);setTimeout(()=>c.remove(),3600)}
+}
+const emptyBox=(ico,title,text,btn)=>`<div class="empty"><span class="e-ico">${ico}</span><b>${title}</b>${text}${btn?'<br>'+btn:''}</div>`;
+
+/* приветствие по времени суток */
+(function(){const h=new Date().getHours();
+  const g=h<5||h>=23?'Доброй ночи':h<12?'Доброе утро':h<18?'Добрый день':'Добрый вечер';
+  $('greet').textContent=g+'! '+(h<5||h>=23?'Принтер тоже не спит?':'Что печатаем сегодня?');
+})();
 
 /* ================= ПРОБЛЕМЫ ================= */
 // Поиск видео по проблеме: русский запрос, английский запрос, Rutube
@@ -38,8 +60,22 @@ function renderP(){
   if(pbrand!=='all')L.sort((a,b)=>(b.b===pbrand)-(a.b===pbrand));
   $('plist').innerHTML=L.length?L.map(p=>card(p.i,p.t,(p.b?`<i class="tag">${BRANDS[p.b]}</i>`:'')+p.s,
     `<div class="lbl">Почему</div><ul>${li(p.why)}</ul><div class="lbl">Что сделать</div><ol>${li(p.fix)}</ol>${p.tip?`<div class="tip">💡 ${p.tip}</div>`:''}${videoLinks(p)}`)).join('')
-    :`<div class="empty">Ничего не нашлось. Попробуй другое слово или выбери «Все».</div>`;
+    :emptyBox('🔍','Хм, такого пока нет','Попробуй сказать проще — «липнет», «полосы», «щёлкает» — или сбрось фильтры.','<button class="btn2" data-preset>Сбросить фильтры</button>');
 }
+$('plist').addEventListener('click',e=>{if(!e.target.closest('[data-preset]'))return;
+  pcat='Все';pbrand='all';store.set('k2brand','all');$('q').value='';renderPChips();renderP()});
+/* совет дня — берём подсказки из карточек проблем, меняется каждый день */
+const TIPS=PROBLEMS.filter(p=>p.tip);
+let tipI=Math.floor(Date.now()/864e5)%TIPS.length;
+function renderTip(anim){const p=TIPS[tipI];
+  $('daytip').innerHTML=`<div class="dt-h"><b>💡 Совет дня</b><button id="tipnext">Ещё ↻</button></div><p class="${anim?'swap':''}">${p.tip}</p><small>Из темы «<a href="#" data-tipgo>${p.t}</a>»</small>`}
+$('daytip').onclick=e=>{
+  if(e.target.closest('#tipnext')){tipI=(tipI+1)%TIPS.length;renderTip(true);buzz(5);return}
+  if(!e.target.closest('[data-tipgo]'))return;e.preventDefault();
+  const p=TIPS[tipI];pcat='Все';if(p.b&&pbrand!=='all'&&pbrand!==p.b)pbrand='all';
+  $('q').value=p.t;renderPChips();renderP();
+  const c=$('plist').querySelector('.card');if(c){c.classList.add('open');c.scrollIntoView({behavior:'smooth',block:'center'})}
+};
 $('pcats').onclick=e=>{const b=e.target.closest('.chip');if(!b)return;pcat=b.dataset.v;renderPChips();renderP()};
 $('pbrands').onclick=e=>{const b=e.target.closest('.chip');if(!b)return;pbrand=b.dataset.v;store.set('k2brand',pbrand);renderPChips();renderP()};
 $('q').oninput=renderP;
@@ -102,7 +138,7 @@ function renderBrands(){
   const B=FIL_BRANDS.filter(m);
   $('brandlist').innerHTML=B.map(b=>card('🧵',b.n,`${b.c} · ${b.lines}`,`<div class="kv">
       <div><span>Страна</span>${b.c}</div><div><span>Линейки</span>${b.lines}</div><div><span>Катушка</span>${b.spool}</div><div><span>Сайт</span>${link(b.site)}</div></div>
-      <div class="tip">💡 ${b.notes}</div>`)).join('')+(B.length||mine.length?`<div class="warn">⚠️ Линейки и катушки меняются — проверяй на сайте производителя. Картонные катушки в CFS/AMS используй с переходными кольцами.</div>`:`<div class="empty">Ничего не нашлось.</div>`);
+      <div class="tip">💡 ${b.notes}</div>`)).join('')+(B.length||mine.length?`<div class="warn">⚠️ Линейки и катушки меняются — проверяй на сайте производителя. Картонные катушки в CFS/AMS используй с переходными кольцами.</div>`:emptyBox('🧵','Ничего не нашлось','Попробуй другое название, материал или страну.'));
 }
 let editIdx=-1;
 const SF=['n','site','mat','price','r','note'];
@@ -117,16 +153,18 @@ $('sup-toggle').onclick=()=>openForm(-1);
 $('sf-cancel').onclick=closeForm;
 $('sf-save').onclick=()=>{
   const o={};SF.forEach(k=>o[k]=$('sf-'+k).value.trim());o.r=+o.r||0;
-  if(!o.n){$('sf-n').focus();$('sf-n').style.borderColor='var(--danger)';return}
-  $('sf-n').style.borderColor='';
-  const S=store.get('k2suppliers',[]);
-  if(editIdx>=0&&S[editIdx]){o.d=S[editIdx].d;S[editIdx]=o}else{o.d=today();S.unshift(o)}
-  store.set('k2suppliers',S);closeForm();renderBrands();
+  if(!o.n){shake($('sf-n'));toast('Как называется магазин? Без названия не сохраню 🙂');return}
+  const S=store.get('k2suppliers',[]),was=editIdx>=0&&S[editIdx];
+  if(was){o.d=S[editIdx].d;S[editIdx]=o}else{o.d=today();S.unshift(o)}
+  store.set('k2suppliers',S);closeForm();renderBrands();buzz(10);
+  toast(was?'Изменения сохранены ✓':`«${o.n}» теперь в твоём списке ✓`);
 };
 $('suplist').addEventListener('click',e=>{
   const ed=e.target.closest('[data-edit]');if(ed){openForm(+ed.dataset.edit);return}
-  const d=e.target.closest('[data-del]');if(!d||!twoTapDelete(d))return;
-  const S=store.get('k2suppliers',[]);S.splice(+d.dataset.del,1);store.set('k2suppliers',S);renderBrands();
+  const d=e.target.closest('[data-del]');if(!d)return;
+  const i=+d.dataset.del,S=store.get('k2suppliers',[]),[gone]=S.splice(i,1);
+  store.set('k2suppliers',S);renderBrands();buzz(15);
+  toast(`«${gone.n}» удалён`,()=>{const S2=store.get('k2suppliers',[]);S2.splice(i,0,gone);store.set('k2suppliers',S2);renderBrands()});
 });
 $('bq').oninput=renderBrands;
 $('mseg').onclick=e=>{const b=e.target.closest('button');if(!b)return;
@@ -177,7 +215,7 @@ function renderG(){
   $('gsecs').innerHTML=chips(GUIDE.map(s=>[s.sec,s.sec]),q?'':gs);
   if(q){
     const hits=[];GUIDE.forEach(s=>s.items.forEach(a=>{if((a.t+' '+a.s+' '+a.b.replace(/<[^>]+>/g,' ')).toLowerCase().includes(q))hits.push({a,sec:s.sec})}));
-    $('glist').innerHTML=hits.length?hits.map(({a,sec})=>card(a.i,a.t,`${sec} · ${a.s}`,a.b)).join(''):`<div class="empty">Ничего не нашлось.</div>`;
+    $('glist').innerHTML=hits.length?hits.map(({a,sec})=>card(a.i,a.t,`${sec} · ${a.s}`,a.b)).join(''):emptyBox('📚','Об этом я пока не писал','Попробуй другое слово — например, «ретракт», «калибровка» или «сушка».');
     return;
   }
   const S=GUIDE.find(s=>s.sec===gs)||GUIDE[0];
@@ -210,7 +248,7 @@ async function fetchText(url){
   finally{clearTimeout(tm)}
 }
 async function loadFeeds(force){
-  if(vbusy)return;vbusy=true;$('vstatus').textContent='Загружаю…';
+  if(vbusy)return;vbusy=true;$('vstatus').textContent='Собираю свежие ролики…';$('vstatus').classList.add('busy');
   const cache=store.get('k2vcache',{}),now=Date.now();
   const need=feedChannels().filter(c=>force||!cache[c.id]||now-cache[c.id].at>VC_TTL);
   let ok=0,fail=0;
@@ -221,7 +259,7 @@ async function loadFeeds(force){
   // чистим кэш удалённых каналов
   const ids=new Set(allChannels().map(c=>c.id));Object.keys(cache).forEach(k=>{if(!ids.has(k))delete cache[k]});
   store.set('k2vcache',cache);vbusy=false;
-  renderV(need.length&&fail===need.length?'Нет связи — показаны сохранённые видео':fail?`Обновлено, не загрузилось каналов: ${fail}`:'');
+  renderV(need.length&&fail===need.length?'Интернета нет — показываю то, что уже скачано':fail?`Обновил. Не ответили каналов: ${fail} — попробуй позже`:'');
 }
 function ago(iso){
   const t=Date.parse(iso);if(!t)return '';const d=Math.floor((Date.now()-t)/864e5);
@@ -238,11 +276,12 @@ function renderV(msg){
   const items=[];chs.filter(c=>vch==='all'||c.id===vch).forEach(c=>((cache[c.id]||{}).items||[]).slice().sort((a,b)=>Date.parse(b.d)-Date.parse(a.d)).slice(0,per).forEach(it=>items.push({...it,c})));
   items.sort((a,b)=>Date.parse(b.d)-Date.parse(a.d));
   const times=chs.map(c=>(cache[c.id]||{}).at).filter(Boolean);
-  $('vstatus').textContent=msg||(times.length?'Обновлено: '+new Date(Math.min(...times)).toLocaleString('ru-RU',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'');
+  $('vstatus').classList.toggle('busy',vbusy);
+  $('vstatus').textContent=msg||(times.length?'Обновлено '+new Date(Math.min(...times)).toLocaleString('ru-RU',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'');
   $('vlist').innerHTML=items.length?items.slice(0,60).map(it=>`<a class="vid" href="https://www.youtube.com/watch?v=${it.v}" target="_blank" rel="noopener">
     <div class="th"><img loading="lazy" alt="" src="https://i.ytimg.com/vi/${it.v}/mqdefault.jpg" onerror="this.remove()"></div>
     <div class="vt"><b>${esc(it.t)}</b><span>${esc(it.c.n)} · ${ago(it.d)}</span></div></a>`).join('')
-    :`<div class="empty">${vbusy?'Загружаю видео…':'Видео пока нет. Нажми «Обновить» (нужен интернет).'}</div>`;
+    :(vbusy?emptyBox('🎬','Собираю ролики…','Секунду, спрашиваю у YouTube.'):emptyBox('📡','Тут пока пусто','Подключись к интернету и нажми «↻ Обновить» — подтяну свежие ролики.'));
   renderVC();
 }
 function renderVC(){
@@ -257,18 +296,18 @@ async function resolveChannel(raw){
   if(/^@[\w.\-]+$/.test(raw))url='https://www.youtube.com/'+raw;
   else if(yt)url='https://www.youtube.com/'+yt[1];
   else if(/^[\w.\-]{3,}$/.test(raw))url='https://www.youtube.com/@'+raw;
-  if(!url)throw new Error('Не похоже на ссылку на канал YouTube');
+  if(!url)throw new Error('Не похоже на ссылку на канал. Пример: youtube.com/@CNCKitchen');
   const html=await fetchText(url.replace(/^http:/,'https:'));
   m=html.match(/<link rel="canonical" href="https:\/\/www\.youtube\.com\/channel\/(UC[\w-]{22})"/)||html.match(/"externalId":"(UC[\w-]{22})"/)||html.match(/"channelId":"(UC[\w-]{22})"/);
-  if(!m)throw new Error('Канал не найден');
+  if(!m)throw new Error('Не нашёл такой канал — проверь, нет ли опечатки');
   return m[1];
 }
 $('vc-add').onclick=async()=>{
-  const raw=$('vc-in').value,msg=$('vc-msg');if(!raw.trim())return;
-  msg.textContent='Ищу канал…';$('vc-add').disabled=true;
+  const raw=$('vc-in').value,msg=$('vc-msg');if(!raw.trim()){shake($('vc-in'));return}
+  msg.textContent='Ищу канал на YouTube…';$('vc-add').disabled=true;
   try{
     const id=await resolveChannel(raw);
-    if(allChannels().some(c=>c.id===id))throw new Error('Этот канал уже есть в ленте');
+    if(allChannels().some(c=>c.id===id))throw new Error('Этот канал уже есть в ленте 👍');
     const xml=await fetchText('https://www.youtube.com/feeds/videos.xml?channel_id='+id);
     const d=new DOMParser().parseFromString(xml,'application/xml');
     const n=((d.getElementsByTagName('title')[0]||{}).textContent||id).trim();
@@ -276,14 +315,15 @@ $('vc-add').onclick=async()=>{
     const ru=/[а-яё]/i.test(n+' '+items.map(x=>x.t).join(' '));
     const M=store.get('k2channels',[]);M.push({id,n,f:$('vc-feed').value,l:ru?'ru':'en'});store.set('k2channels',M);
     const cache=store.get('k2vcache',{});cache[id]={at:Date.now(),items};store.set('k2vcache',cache);
-    msg.textContent='✓ Добавлен: '+n;$('vc-in').value='';
+    msg.textContent=`Готово! «${n}» теперь в ленте 🎉`;$('vc-in').value='';buzz(10);
     if($('vc-feed').value!==vfeed){vfeed=$('vc-feed').value;[...$('vseg').children].forEach(x=>x.classList.toggle('on',x.dataset.v===vfeed))}
     vlang='all';vch=id;renderV();
-  }catch(e){msg.textContent='⚠️ '+(e.name==='AbortError'?'Нет ответа — проверь интернет':e.message==='Failed to fetch'?'Нет связи с YouTube':e.message)}
+  }catch(e){msg.textContent=(e.name==='AbortError'?'YouTube долго не отвечает — проверь интернет и попробуй ещё раз':e.message==='Failed to fetch'?'Нет связи с YouTube — проверь интернет':e.message)}
   finally{$('vc-add').disabled=false}
 };
-$('vc-list').onclick=e=>{const d=e.target.closest('[data-vdel]');if(!d||!twoTapDelete(d))return;
-  const M=store.get('k2channels',[]);M.splice(+d.dataset.vdel,1);store.set('k2channels',M);renderV()};
+$('vc-list').onclick=e=>{const d=e.target.closest('[data-vdel]');if(!d)return;
+  const i=+d.dataset.vdel,M=store.get('k2channels',[]),[gone]=M.splice(i,1);store.set('k2channels',M);renderV();buzz(15);
+  toast(`«${gone.n}» убран из ленты`,()=>{const M2=store.get('k2channels',[]);M2.splice(i,0,gone);store.set('k2channels',M2);renderV()})};
 $('vseg').onclick=e=>{const b=e.target.closest('button');if(!b)return;vfeed=b.dataset.v;vch='all';
   [...$('vseg').children].forEach(x=>x.classList.toggle('on',x===b));renderV();loadFeeds(false)};
 $('vlang').onclick=e=>{const b=e.target.closest('.chip');if(!b)return;vlang=b.dataset.v;renderV();loadFeeds(false)};
@@ -299,35 +339,41 @@ const M=[
 {g:"Раз в месяц",id:"month",items:[["Протереть направляющие и рельсы сухой безворсовой салфеткой","Смазку — только по инструкции производителя"],["Проверить натяжение ремней","Звучат одинаково на обеих сторонах"],["Почистить латунной щёткой сопло и датчик",""],["Протереть объективы камер",""],["Проверить обновления прошивки",""]]},
 {g:"Раз в 3–6 месяцев",id:"q",items:[["Смазать ходовые винты Z","Тонким слоем, по инструкции производителя"],["Проверить или заменить угольный фильтр","Особенно если печатаешь ABS/ASA"],["Осмотреть сопло, при износе заменить",""],["Продуть вентиляторы от пыли",""],["Откалибровать резонансы (input shaping)","После переезда или замены ремней — обязательно"]]}
 ];
-function renderM(){
+const grpDone=(g,st)=>g.items.filter((_,i)=>st[g.id+i]).length;
+function renderM(popK){
   const st=store.get('k2care',{});
   $('mlist').innerHTML=M.map(g=>{
-    const done=g.items.filter((_,i)=>st[g.id+i]).length,pct=Math.round(done/g.items.length*100);
-    return `<div class="card"><div class="grp-h"><b>${g.g}</b><button class="reset" data-g="${g.id}">Сбросить</button></div>
+    const done=grpDone(g,st),n=g.items.length,pct=Math.round(done/n*100);
+    return `<div class="card ${done===n?'full':''}"><div class="grp-h"><b>${g.g}<em>${done===n?'всё сделано 🧡':done+' из '+n}</em></b>${done?`<button class="reset" data-g="${g.id}">Сбросить</button>`:''}</div>
     <div class="bar"><i style="width:${pct}%"></i></div>
-    ${g.items.map((it,i)=>`<div class="check ${st[g.id+i]?'done':''}" data-k="${g.id+i}"><div class="box"></div><div class="ct">${it[0]}${it[1]?`<small>${it[1]}</small>`:''}${st[g.id+i]?`<small>✓ ${esc(st[g.id+i])}</small>`:''}</div></div>`).join('')}</div>`}).join('');
+    ${g.items.map((it,i)=>`<div class="check ${st[g.id+i]?'done':''} ${popK===g.id+i?'pop':''}" data-k="${g.id+i}"><div class="box"></div><div class="ct"><span>${it[0]}</span>${it[1]?`<small>${it[1]}</small>`:''}${st[g.id+i]?`<small class="when">✓ сделано ${esc(st[g.id+i])}</small>`:''}</div></div>`).join('')}</div>`}).join('');
 }
 $('mlist').onclick=e=>{
   const st=store.get('k2care',{});
   const r=e.target.closest('.reset');
-  if(r){Object.keys(st).forEach(k=>{if(k.startsWith(r.dataset.g))delete st[k]});store.set('k2care',st);renderM();return}
+  if(r){const snap={...st};Object.keys(st).forEach(k=>{if(k.startsWith(r.dataset.g))delete st[k]});store.set('k2care',st);renderM();
+    toast('Отметки сброшены',()=>{store.set('k2care',snap);renderM()});return}
   const c=e.target.closest('.check');if(!c)return;
   const k=c.dataset.k;if(st[k])delete st[k];else st[k]=today();
-  store.set('k2care',st);renderM();
+  store.set('k2care',st);renderM(st[k]?k:'');buzz(st[k]?12:6);
+  const g=M.find(g=>k.startsWith(g.id)&&/^\d+$/.test(k.slice(g.id.length)));
+  if(st[k]&&g&&grpDone(g,st)===g.items.length){confetti();buzz([20,60,20]);toast('Всё сделано! Принтер скажет спасибо 🧡')}
 };
 
 /* ================= ЗАМЕТКИ ================= */
 function renderN(){
   const N=store.get('k2notes',[]);
-  $('nlist').innerHTML=N.length?N.map((n,i)=>`<div class="note"><div class="note-h"><b>${esc(n.t||'Без названия')}</b><button class="del" data-i="${i}" aria-label="Удалить">×</button></div><time>${esc(n.d)}</time><p>${esc(n.b)}</p></div>`).join(''):`<div class="empty">Пока заметок нет. Запиши свой первый удачный профиль.</div>`;
+  $('nlist').innerHTML=N.length?N.map((n,i)=>`<div class="note"><div class="note-h"><b>${esc(n.t||'Без названия')}</b><button class="del" data-i="${i}" aria-label="Удалить">×</button></div><time>${esc(n.d)}</time><p>${esc(n.b)}</p></div>`).join(''):emptyBox('📝','Тут будут твои рецепты','Нашёл идеальные настройки для PETG? Запиши — через месяц скажешь себе спасибо.');
 }
 $('nadd').onclick=()=>{
   const t=$('nt').value.trim(),b=$('nb').value.trim();
-  if(!t&&!b)return;const N=store.get('k2notes',[]);N.unshift({t,b,d:today()});
-  store.set('k2notes',N);$('nt').value='';$('nb').value='';renderN();
+  if(!t&&!b){shake($('nt'));toast('Напиши хоть пару слов — название или настройки');return}
+  const N=store.get('k2notes',[]);N.unshift({t,b,d:today()});
+  store.set('k2notes',N);$('nt').value='';$('nb').value='';renderN();buzz(10);toast('Записал! 📝');
 };
-$('nlist').onclick=e=>{const d=e.target.closest('.del');if(!d||!twoTapDelete(d))return;
-  const N=store.get('k2notes',[]);N.splice(+d.dataset.i,1);store.set('k2notes',N);renderN()};
+$('nlist').onclick=e=>{const d=e.target.closest('.del');if(!d)return;
+  const i=+d.dataset.i,N=store.get('k2notes',[]),[gone]=N.splice(i,1);store.set('k2notes',N);renderN();buzz(15);
+  toast('Заметка удалена',()=>{const N2=store.get('k2notes',[]);N2.splice(i,0,gone);store.set('k2notes',N2);renderN()})};
 $('myseg').onclick=e=>{const b=e.target.closest('button');if(!b)return;
   [...$('myseg').children].forEach(x=>x.classList.toggle('on',x===b));
   $('my-care').hidden=b.dataset.v!=='care';$('my-notes').hidden=b.dataset.v!=='notes'};
@@ -340,4 +386,4 @@ function go(id){
   if(id==='s-video'&&!vStarted){vStarted=true;renderV();loadFeeds(false)}
 }
 $('nav').onclick=e=>{const b=e.target.closest('button');if(b)go(b.dataset.s)};
-renderPChips();renderP();renderPr();renderMat();renderBrands();renderG();renderM();renderN();
+renderTip();renderPChips();renderP();renderPr();renderMat();renderBrands();renderG();renderM();renderN();
