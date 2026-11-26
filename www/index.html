@@ -5,96 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0E1116">
 <title>K2 Pro Помощник</title>
-<style>
-:root{
-  --bg:#0E1116; --surface:#161B22; --surface2:#1E242D; --line:#2A313C;
-  --text:#E8ECF1; --muted:#8B95A3; --accent:#3DDC97; --accent2:#4FA3FF;
-  --warn:#FFB547; --danger:#FF6B6B; --radius:18px;
-}
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:16px;line-height:1.45}
-body{padding-bottom:calc(84px + env(safe-area-inset-bottom))}
-header{position:sticky;top:0;z-index:5;background:rgba(14,17,22,.92);backdrop-filter:blur(12px);padding:calc(14px + env(safe-area-inset-top)) 18px 12px;border-bottom:1px solid var(--line)}
-.brand{display:flex;align-items:center;gap:10px}
-.logo{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:grid;place-items:center;font-weight:800;color:#0E1116;font-size:14px}
-.brand h1{font-size:19px;font-weight:700;letter-spacing:-.2px}
-.brand small{display:block;color:var(--muted);font-size:12px;font-weight:500}
-main{padding:16px 16px 8px;max-width:720px;margin:0 auto}
-section{display:none;animation:fade .25s ease}
-section.active{display:block}
-@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-h2{font-size:24px;font-weight:750;letter-spacing:-.4px;margin:4px 2px 4px}
-.sub{color:var(--muted);font-size:14px;margin:0 2px 14px}
-.search{width:100%;background:var(--surface);border:1px solid var(--line);color:var(--text);border-radius:14px;padding:13px 16px;font-size:16px;outline:none;margin-bottom:12px}
-.search:focus{border-color:var(--accent)}
-.chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:12px;scrollbar-width:none}
-.chips::-webkit-scrollbar{display:none}
-.chip{flex:none;background:var(--surface);border:1px solid var(--line);color:var(--muted);border-radius:999px;padding:7px 14px;font-size:14px;font-weight:600;cursor:pointer}
-.chip.on{background:var(--accent);border-color:var(--accent);color:#0E1116}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);margin-bottom:10px;overflow:hidden}
-.card-h{display:flex;align-items:center;gap:12px;padding:15px 16px;cursor:pointer}
-.ico{width:40px;height:40px;flex:none;border-radius:12px;background:var(--surface2);display:grid;place-items:center;font-size:20px}
-.card-h .t{flex:1;min-width:0}
-.card-h b{display:block;font-size:16px;font-weight:650}
-.card-h span{display:block;color:var(--muted);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.chev{color:var(--muted);transition:transform .2s;font-size:18px}
-.card.open .chev{transform:rotate(90deg)}
-.card-b{display:none;padding:0 16px 16px;border-top:1px solid var(--line)}
-.card.open .card-b{display:block}
-.lbl{font-size:12px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);font-weight:700;margin:14px 0 6px}
-ol,ul{padding-left:20px}
-li{margin:5px 0}
-.tip{background:rgba(61,220,151,.08);border:1px solid rgba(61,220,151,.25);border-radius:12px;padding:10px 12px;font-size:14px;margin-top:12px}
-.warn{background:rgba(255,181,71,.08);border:1px solid rgba(255,181,71,.3);border-radius:12px;padding:10px 12px;font-size:14px;margin-top:12px}
-.fil-top{padding:16px}
-.fil-name{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
-.fil-name b{font-size:22px;font-weight:800;letter-spacing:-.3px}
-.badge{font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px;background:var(--surface2);color:var(--muted)}
-.badge.g{background:rgba(61,220,151,.15);color:var(--accent)}
-.badge.y{background:rgba(255,181,71,.15);color:var(--warn)}
-.badge.r{background:rgba(255,107,107,.15);color:var(--danger)}
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.stat{background:var(--surface2);border-radius:12px;padding:10px}
-.stat small{display:block;color:var(--muted);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
-.stat b{display:block;font-size:15px;font-weight:750;white-space:nowrap}
-.stats.two{grid-template-columns:repeat(2,1fr);margin-top:8px}
-.fil-notes{padding:0 16px 16px;font-size:14px;color:#C9D1DB}
-.fil-notes li{margin:4px 0}
-.check{display:flex;align-items:flex-start;gap:12px;padding:13px 16px;border-top:1px solid var(--line);cursor:pointer}
-.check:first-of-type{border-top:none}
-.box{width:24px;height:24px;flex:none;border-radius:8px;border:2px solid var(--line);display:grid;place-items:center;margin-top:1px;transition:.15s}
-.check.done .box{background:var(--accent);border-color:var(--accent)}
-.check.done .box::after{content:"✓";color:#0E1116;font-weight:900;font-size:14px}
-.check.done .ct{color:var(--muted);text-decoration:line-through}
-.ct small{display:block;color:var(--muted);font-size:13px;text-decoration:none}
-.grp-h{display:flex;justify-content:space-between;align-items:center;padding:14px 16px 6px}
-.grp-h b{font-size:16px}
-.reset{background:none;border:none;color:var(--accent2);font-size:13px;font-weight:600;cursor:pointer}
-.bar{height:6px;background:var(--surface2);border-radius:99px;margin:4px 16px 10px;overflow:hidden}
-.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .3s}
-textarea,input.f{width:100%;background:var(--surface);border:1px solid var(--line);color:var(--text);border-radius:14px;padding:12px 14px;font-size:15px;font-family:inherit;outline:none}
-textarea{min-height:90px;resize:vertical}
-textarea:focus,input.f:focus{border-color:var(--accent)}
-.btn{width:100%;background:var(--accent);color:#0E1116;border:none;border-radius:14px;padding:14px;font-size:16px;font-weight:750;margin:10px 0 18px;cursor:pointer}
-.note{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:8px}
-.note-h{display:flex;justify-content:space-between;gap:8px;align-items:center}
-.note-h b{font-size:15px}
-.note p{color:#C9D1DB;font-size:14px;white-space:pre-wrap;margin-top:4px}
-.note time{font-size:12px;color:var(--muted)}
-.del{background:none;border:none;color:var(--danger);font-size:20px;cursor:pointer;padding:0 4px;min-height:32px}.del.sure{font-size:13px;font-weight:700}
-.empty{color:var(--muted);text-align:center;padding:24px;font-size:14px}
-.spec{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
-.spec .stat b{font-size:15px}
-nav{position:fixed;left:0;right:0;bottom:0;z-index:10;background:rgba(22,27,34,.96);backdrop-filter:blur(14px);border-top:1px solid var(--line);display:flex;padding:8px 6px calc(8px + env(safe-area-inset-bottom))}
-nav button{flex:1;background:none;border:none;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:650;padding:6px 0;border-radius:12px;cursor:pointer}
-nav button .ni{font-size:21px;line-height:1;filter:grayscale(1);opacity:.7}
-nav button.on{color:var(--accent)}
-nav button.on .ni{filter:none;opacity:1}
-</style>
+<link rel="stylesheet" href="css/app.css">
 </head>
 <body>
 <header>
-  <div class="brand"><div class="logo">K2</div><div><h1>K2 Pro Помощник</h1><small>Creality K2 Pro · подсказки и уход</small></div></div>
+  <div class="brand"><div class="logo">K2</div><div><h1>K2 Pro Помощник</h1><small>Справочник по 3D-печати</small></div></div>
 </header>
 
 <main>
@@ -102,211 +17,93 @@ nav button.on .ni{filter:none;opacity:1}
   <section id="s-problems" class="active">
     <h2>Что случилось?</h2>
     <p class="sub">Найди симптом. Меняй одну настройку за раз.</p>
-    <input class="search" id="q" placeholder="Поиск: не липнет, паутина, щелчки…" autocomplete="off">
-    <div class="chips" id="cats"></div>
+    <input class="search" id="q" type="search" placeholder="Поиск: не липнет, паутина, щелчки…" autocomplete="off">
+    <div class="chips" id="pcats"></div>
+    <div class="chips-lbl">Мой принтер</div>
+    <div class="chips alt" id="pbrands"></div>
     <div id="plist"></div>
   </section>
 
-  <!-- ФИЛАМЕНТЫ -->
-  <section id="s-fil">
-    <h2>Филаменты</h2>
-    <p class="sub">Стартовые значения для K2 Pro. Сверяйся с этикеткой катушки.</p>
-    <div id="flist"></div>
+  <!-- ПРИНТЕРЫ -->
+  <section id="s-printers">
+    <h2>Принтеры</h2>
+    <p class="sub">Популярные модели: характеристики, особенности и советы.</p>
+    <div class="chips" id="prbrands"></div>
+    <div id="prlist"></div>
+    <div class="warn">⚠️ Характеристики — по данным производителей. Модели обновляются: точные данные и инструкции смотри на официальном сайте (указан в карточке).</div>
   </section>
 
-  <!-- CFS -->
-  <section id="s-cfs">
-    <h2>CFS и принтер</h2>
-    <p class="sub">Система подачи филамента и полезное о K2 Pro.</p>
-    <div class="spec">
-      <div class="stat"><small>Область печати</small><b>300×300×300</b></div>
-      <div class="stat"><small>Сопло, макс.</small><b>300 °C</b></div>
-      <div class="stat"><small>Стол, макс.</small><b>110 °C</b></div>
-      <div class="stat"><small>Камера, макс.</small><b>60 °C</b></div>
-      <div class="stat"><small>Сопло</small><b>0,4 закал. сталь</b></div>
-      <div class="stat"><small>Пруток</small><b>1,75 мм</b></div>
+  <!-- МАТЕРИАЛЫ -->
+  <section id="s-materials">
+    <h2>Материалы</h2>
+    <div class="seg" id="mseg"><button data-v="mat" class="on">Пластики</button><button data-v="brands">Производители</button></div>
+    <div id="m-mat">
+      <p class="sub">Стартовые значения. Сверяйся с этикеткой катушки.</p>
+      <div class="chips" id="mgroups"></div>
+      <div id="matlist"></div>
+      <div class="warn">⚠️ У разных производителей диапазоны отличаются: смотри этикетку и печатай температурную башню для новой марки. Максимальные температуры своего принтера проверь в его карточке.</div>
     </div>
-    <div id="clist"></div>
+    <div id="m-brands" hidden>
+      <p class="sub">Популярные марки и твои поставщики.</p>
+      <input class="search" id="bq" type="search" placeholder="Поиск: марка, материал, страна…" autocomplete="off">
+      <button class="btn" id="sup-toggle" style="margin-top:0">＋ Добавить своего поставщика</button>
+      <div class="card" id="sup-form" hidden><div style="padding:4px 16px 16px">
+        <label class="fl">Название *</label><input class="f" id="sf-n" placeholder="Напр. «Магазин 3D-пластика у дома»">
+        <label class="fl">Сайт или контакт</label><input class="f" id="sf-site" placeholder="example.com, телефон, Telegram">
+        <label class="fl">Материалы</label><input class="f" id="sf-mat" placeholder="PLA, PETG, TPU…">
+        <div class="fgrid">
+          <div><label>Цена</label><input class="f" id="sf-price" placeholder="напр. 20 € / кг"></div>
+          <div><label>Оценка</label><select class="f" id="sf-r"><option value="0">—</option><option value="5">★★★★★</option><option value="4">★★★★</option><option value="3">★★★</option><option value="2">★★</option><option value="1">★</option></select></div>
+        </div>
+        <label class="fl">Заметка</label><textarea id="sf-note" placeholder="Качество, доставка, скидки, какие цвета понравились…"></textarea>
+        <div class="row"><button class="btn2" id="sf-cancel">Отмена</button><button class="btn2 acc" id="sf-save">Сохранить</button></div>
+      </div></div>
+      <div id="suplist"></div>
+      <div id="brandlist"></div>
+    </div>
   </section>
 
-  <!-- УХОД -->
-  <section id="s-care">
-    <h2>Обслуживание</h2>
-    <p class="sub">Отмечай сделанное. Отметки сохраняются на телефоне.</p>
-    <div id="mlist"></div>
+  <!-- СПРАВОЧНИК -->
+  <section id="s-guide">
+    <h2>Справочник</h2>
+    <p class="sub">Основы, настройки, калибровка и полезные приёмы.</p>
+    <input class="search" id="gq" type="search" placeholder="Поиск по справочнику…" autocomplete="off">
+    <div class="chips" id="gsecs"></div>
+    <div id="glist"></div>
   </section>
 
-  <!-- ЗАМЕТКИ -->
-  <section id="s-notes">
-    <h2>Мои настройки</h2>
-    <p class="sub">Записывай удачные профили, марки пластика и находки.</p>
-    <input class="f" id="nt" placeholder="Название, напр. «PETG Bestfilament чёрный»">
-    <div style="height:8px"></div>
-    <textarea id="nb" placeholder="Сопло 240 °C, стол 75 °C, обдув 40 %, скорость…"></textarea>
-    <button class="btn" id="nadd">Сохранить заметку</button>
-    <div id="nlist"></div>
+  <!-- МОЁ -->
+  <section id="s-my">
+    <div class="seg" id="myseg"><button data-v="care" class="on">Уход</button><button data-v="notes">Заметки</button></div>
+    <div id="my-care">
+      <h2>Обслуживание</h2>
+      <p class="sub">Отмечай сделанное. Отметки сохраняются на телефоне.</p>
+      <div id="mlist"></div>
+    </div>
+    <div id="my-notes" hidden>
+      <h2>Мои настройки</h2>
+      <p class="sub">Записывай удачные профили, марки пластика и находки.</p>
+      <input class="f" id="nt" placeholder="Название, напр. «PETG Bestfilament чёрный»">
+      <div style="height:8px"></div>
+      <textarea id="nb" placeholder="Сопло 240 °C, стол 75 °C, обдув 40 %, скорость…"></textarea>
+      <button class="btn" id="nadd">Сохранить заметку</button>
+      <div id="nlist"></div>
+    </div>
   </section>
 </main>
 
 <nav id="nav">
   <button data-s="s-problems" class="on"><span class="ni">🛠️</span>Проблемы</button>
-  <button data-s="s-fil"><span class="ni">🧵</span>Филаменты</button>
-  <button data-s="s-cfs"><span class="ni">🎛️</span>CFS</button>
-  <button data-s="s-care"><span class="ni">✅</span>Уход</button>
-  <button data-s="s-notes"><span class="ni">📝</span>Заметки</button>
+  <button data-s="s-printers"><span class="ni">🖨️</span>Принтеры</button>
+  <button data-s="s-materials"><span class="ni">🧵</span>Материалы</button>
+  <button data-s="s-guide"><span class="ni">📚</span>Справочник</button>
+  <button data-s="s-my"><span class="ni">📝</span>Моё</button>
 </nav>
 
-<script>
-const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
-const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-
-/* ---------- ПРОБЛЕМЫ ---------- */
-const P=[
-{c:"Первый слой",i:"🧲",t:"Модель не липнет к столу",s:"отрывается, сдвигается, не держится",k:"адгезия липнет отлипает",
- why:["Жир и пыль на пластине (следы пальцев)","Неверный Z-offset: сопло слишком высоко","Низкая температура стола","Слишком быстрый первый слой или сильный обдув"],
- fix:["Вымой PEI-пластину тёплой водой с каплей средства для посуды, вытри насухо. Не трогай поверхность пальцами","Запусти авто-калибровку на экране принтера","Подними температуру стола на 5 °C","В Creality Print снизь скорость первого слоя и выключи обдув на первых 2–3 слоях","Для мелких деталей добавь кайму (brim) 5–8 мм"],
- tip:"Текстурированный PEI держит PLA и PETG без клея. Клей-карандаш нужен в основном для TPU и как разделитель для PETG."},
-{c:"Первый слой",i:"📏",t:"Первый слой рваный или с бороздами",s:"щели между линиями, полосы",k:"первый слой борозды щели",
- why:["Сопло высоко: линии не сплющиваются","Сопло низко: пластик выдавливается гребнями","Грязная пластина"],
- fix:["Повтори калибровку стола","Тонко подстрой Z-offset шагом 0,02 мм прямо во время печати первого слоя","Ширину линии первого слоя поставь 0,45–0,5 мм"]},
-{c:"Первый слой",i:"🐘",t:"«Слоновья нога»",s:"нижние слои расплющены наружу",k:"слоновья нога расширение низа",
- why:["Стол слишком горячий","Сопло слишком близко к столу"],
- fix:["Снизь температуру стола на 5–10 °C","Подними Z-offset на 0,02–0,04 мм","Включи компенсацию слоновьей ноги в слайсере (0,1–0,2 мм)"]},
-{c:"Качество",i:"🕸️",t:"Паутина и волоски",s:"нити между частями модели",k:"паутина нити волосы stringing сопли",
- why:["Влажный филамент — причина №1 для PETG и TPU","Слишком высокая температура сопла","Слабый ретракт"],
- fix:["Просуши катушку (см. вкладку «Филаменты»)","Снизь температуру сопла на 5–10 °C","Распечатай температурную башню и выбери лучший участок","Увеличь длину ретракта на 0,2 мм (у директ-экструдера обычно хватает 0,5–1 мм)","Остатки волосков сдуй строительным феном"],
- tip:"Если пластик трещит и пузырится при печати, он точно сырой."},
-{c:"Качество",i:"🧱",t:"Коробление углов (warping)",s:"углы отрываются и загибаются вверх",k:"коробление углы загибаются warping",
- why:["Усадка ABS, ASA и других «горячих» пластиков","Холодная камера или сквозняк","Сильный обдув"],
- fix:["Для ABS и ASA прогрей камеру до 50–60 °C перед стартом","Не открывай крышку во время печати","Снизь обдув до 0–20 %","Добавь кайму 8–10 мм, скругли острые углы модели","Помой пластину: жир усиливает отрыв"],
- tip:"Активный нагрев камеры — главное преимущество K2 Pro для ABS и ASA. Пользуйся им."},
-{c:"Качество",i:"🫥",t:"Недоэкструзия",s:"дырявые стенки, тонкие слои, пропуски",k:"недоэкструзия пропуски дыры тонкие",
- why:["Частичный засор сопла","Слишком высокая скорость для этой температуры","Пруток цепляется на катушке или в трубке","Слабый прижим экструдера"],
- fix:["Проверь, свободно ли крутится катушка и не перехлестнулся ли пруток","Снизь скорость или подними температуру на 5–10 °C","Сделай холодную протяжку (см. «Засор сопла»)","Запусти калибровку потока на принтере"]},
-{c:"Качество",i:"🫧",t:"Переэкструзия и наплывы",s:"толстые стенки, капли, неровная верхняя крышка",k:"переэкструзия наплывы капли пупырышки",
- why:["Завышен поток","Не тот диаметр сопла в профиле","Высокая температура"],
- fix:["Проверь, что в слайсере выбран профиль K2 Pro и сопло 0,4","Запусти калибровку потока и уменьши его на 2–5 %","Включи «гладкие поверхности» (ironing) для верхних крышек"]},
-{c:"Качество",i:"🔍",t:"Шов и прыщи на стенках",s:"видимая полоса, точки по поверхности",k:"шов прыщи zits",
- why:["Начало и конец каждого периметра"],
- fix:["Положение шва: «Выровнять» или «Сзади»","Включи «очистку» (wipe) и «рисование шва» (scarf seam), если есть в слайсере","Немного снизь температуру"]},
-{c:"Механика",i:"↔️",t:"Сдвиг слоёв",s:"модель «съехала» вбок посреди печати",k:"сдвиг слоёв смещение",
- why:["Сопло задело загнувшийся край модели","Слишком высокие скорость и ускорения","Ослабленный ремень или посторонний предмет на пути печатающей головы"],
- fix:["Убери причину задевания: исправь коробление, включи подъём по Z при перемещениях","Снизь ускорения в профиле на 20–30 %","Выключи принтер и проверь пальцами натяжение ремней и чистоту направляющих"]},
-{c:"Механика",i:"🔊",t:"Щелчки экструдера",s:"щёлкает или трещит, подача рывками",k:"щелчки треск экструдер",
- why:["Засор или слишком низкая температура","Сопло слишком близко на первом слое","Скорость выше возможностей хотэнда"],
- fix:["Подними температуру на 10 °C","Проверь Z-offset","Снизь объёмный расход (скорость × высота слоя × ширина линии)","Если не помогло, прочисти сопло"]},
-{c:"Механика",i:"🚫",t:"Засор сопла",s:"пластик не идёт или идёт тонкой нитью",k:"засор сопло пробка не идет",
- why:["Нагар от долгого нагрева без подачи","Мусор или пыль на прутке","Смена горячего пластика на холодный без прочистки"],
- fix:["Холодная протяжка: нагрей сопло до 240 °C, вручную протолкни пруток, охлади до ~90 °C (для PLA) и резко вытяни. Повтори, пока кончик не станет чистым","Прочисти иглой из комплекта при рабочей температуре","Если не помогло, замени сопло по инструкции Creality"],
- tip:"При переходе с ABS или PETG на PLA сначала прогони немного прутка на высокой температуре, потом снижай."},
-{c:"Механика",i:"🌀",t:"Модель отрывается от стола посреди печати",s:"«спагетти» вместо модели",k:"спагетти оторвалась отлипла",
- why:["Плохая адгезия","Высокая узкая модель раскачивается"],
- fix:["Помой пластину и добавь кайму","Для высоких моделей добавь поддерживающие рёбра или печатай медленнее","Включи AI-камеру: она остановит печать при «спагетти»"]},
-{c:"Поддержки",i:"🌉",t:"Поддержки не отделяются",s:"приварились к модели",k:"поддержки не отходят прилипли",
- why:["Нулевой зазор по Z","Слишком горячо"],
- fix:["Зазор Z между поддержкой и моделью сделай 0,2 мм (один слой)","Используй «древовидные» поддержки","Для PETG поставь зазор 0,25 мм: PETG сильнее прилипает сам к себе"]},
-{c:"Поддержки",i:"🍝",t:"Провисания и «сопли» снизу",s:"нависающие части висят нитями",k:"нависания провисание мосты",
- why:["Не хватает обдува","Угол нависания больше 50–55°"],
- fix:["Включи поддержки от 50°","Увеличь обдув для мостов","Поверни модель на столе, чтобы нависаний стало меньше"]},
-{c:"Принтер",i:"⚠️",t:"Ошибка или сбой калибровки",s:"принтер ругается при авто-калибровке",k:"ошибка калибровка датчик",
- why:["На сопле остатки пластика","Мусор на столе","Пластина лежит неровно"],
- fix:["Очисти кончик сопла латунной щёткой на тёплом сопле","Проверь, что под пластиной нет крошек","Перезапусти калибровку","Код ошибки ищи на wiki.creality.com"]},
-{c:"Принтер",i:"📶",t:"Нет связи с Creality Cloud",s:"принтер офлайн, задание не уходит",k:"wifi облако связь cloud сеть",
- why:["K2 Pro работает только с Wi-Fi 2,4 ГГц","Роутер разделил сети 2,4 и 5 ГГц под одним именем"],
- fix:["Подключи принтер к сети 2,4 ГГц","Или подключи кабель LAN: он надёжнее","Обнови прошивку через экран принтера или Creality Print"]}
-];
-const cats=["Все",...new Set(P.map(p=>p.c))];let cat="Все";
-function renderCats(){document.getElementById('cats').innerHTML=cats.map(c=>`<button class="chip ${c===cat?'on':''}" data-c="${c}">${c}</button>`).join('')}
-function renderP(){
-  const q=document.getElementById('q').value.trim().toLowerCase();
-  const L=P.filter(p=>(cat==="Все"||p.c===cat)&&(!q||(p.t+" "+p.s+" "+p.k).toLowerCase().includes(q)));
-  document.getElementById('plist').innerHTML=L.length?L.map((p,n)=>`
-  <div class="card"><div class="card-h"><div class="ico">${p.i}</div><div class="t"><b>${p.t}</b><span>${p.s}</span></div><div class="chev">▸</div></div>
-  <div class="card-b"><div class="lbl">Почему</div><ul>${p.why.map(x=>`<li>${x}</li>`).join('')}</ul>
-  <div class="lbl">Что сделать</div><ol>${p.fix.map(x=>`<li>${x}</li>`).join('')}</ol>${p.tip?`<div class="tip">💡 ${p.tip}</div>`:''}</div></div>`).join(''):`<div class="empty">Ничего не нашлось. Попробуй другое слово.</div>`;
-}
-document.getElementById('cats').onclick=e=>{const b=e.target.closest('.chip');if(!b)return;cat=b.dataset.c;renderCats();renderP()};
-document.getElementById('q').oninput=renderP;
-
-/* ---------- ФИЛАМЕНТЫ ---------- */
-const F=[
-{n:"PLA",b:["Легко","g"],noz:"200–220 °C",bed:"55–60 °C",cham:"не нужна",fan:"100 %",dry:"50 °C · 4–6 ч",cfs:"✅ Да",
- notes:["Крышку можно приоткрыть: перегрев камеры даёт мягкие углы и засоры","Самый простой пластик для начала, игрушек и прототипов","Не выдерживает жару: в машине летом деформируется"]},
-{n:"PETG",b:["Средне","y"],noz:"230–250 °C",bed:"70–80 °C",cham:"не нужна",fan:"30–50 %",dry:"65 °C · 6–8 ч",cfs:"✅ Да",
- notes:["Сильно тянет влагу: суши перед печатью, особенно если появились нити","Липнет к PEI очень крепко. Снимай деталь только после остывания стола","Паутина нормальна в небольших количествах, снижай температуру","Прочнее и гибче PLA, подходит для деталей на улице"]},
-{n:"ABS / ASA",b:["Сложно","r"],noz:"250–270 °C",bed:"90–100 °C",cham:"50–60 °C",fan:"0–20 %",dry:"80 °C · 4–6 ч",cfs:"✅ Да",
- notes:["Перед стартом прогрей камеру и не открывай крышку до конца печати","Есть запах. Ставь принтер в проветриваемой комнате, не в детской","ASA не боится солнца, лучше для деталей на улице","Кайма 8–10 мм почти обязательна для крупных деталей"]},
-{n:"TPU 95A",b:["Сложно","r"],noz:"220–240 °C",bed:"40–50 °C",cham:"не нужна",fan:"50–100 %",dry:"55 °C · 6–8 ч",cfs:"❌ Нет",
- notes:["Через CFS не подавай: гибкий пруток застрянет. Ставь катушку на внешний держатель","Печатай медленно: 30–50 мм/с, ретракт минимальный","Для лёгкого снятия детали нанеси тонкий слой клея-карандаша","Подходит для чехлов, амортизаторов, колёс"]}
-];
-document.getElementById('flist').innerHTML=F.map(f=>`
-<div class="card"><div class="fil-top"><div class="fil-name"><b>${f.n}</b><span class="badge ${f.b[1]}">${f.b[0]}</span></div>
-<div class="stats"><div class="stat"><small>Сопло</small><b>${f.noz}</b></div><div class="stat"><small>Стол</small><b>${f.bed}</b></div><div class="stat"><small>Камера</small><b>${f.cham}</b></div></div>
-<div class="stats"style="margin-top:8px"><div class="stat"><small>Обдув</small><b>${f.fan}</b></div><div class="stat"><small>Сушка</small><b>${f.dry.replace(" · ","<br>")}</b></div><div class="stat"><small>В CFS</small><b>${f.cfs}</b></div></div></div>
-<ul class="fil-notes" style="padding-left:34px">${f.notes.map(x=>`<li>${x}</li>`).join('')}</ul></div>`).join('')+
-`<div class="warn">⚠️ Это стартовые значения. У разных производителей диапазоны отличаются, поэтому смотри этикетку катушки и печатай температурную башню для новой марки.</div>`;
-
-/* ---------- CFS ---------- */
-const C=[
-{i:"📥",t:"Как зарядить филамент в CFS",s:"установка новой катушки",
- b:`<ol><li>Отрежь кончик прутка наискосок, чтобы он был ровным и острым</li><li>Поставь катушку в слот так, чтобы пруток сходил снизу и не перекручивался</li><li>Вставь кончик во входное отверстие слота, пока его не подхватит мотор</li><li>На экране принтера выбери тип и цвет пластика для слота. Катушки с RFID-меткой Creality определятся сами</li></ol><div class="tip">💡 Закрепляй свободный конец прутка в отверстии на боку катушки, чтобы пруток не распустился.</div>`},
-{i:"🎨",t:"Многоцветная печать",s:"до 4 цветов на один CFS, до 16 с четырьмя",
- b:`<ol><li>В Creality Print раскрась модель или импортируй многоцветный 3MF</li><li>Сопоставь цвета модели со слотами CFS</li><li>Отходы от смены цвета уходят в «башню очистки» и в лоток для мусора. Не забывай его опустошать</li></ol><div class="tip">💡 Меньше отходов: печатай несколько копий за раз, назначай очистку в заполнение («промывка в заполнение»).</div>`},
-{i:"🧯",t:"Ошибка подачи или пруток застрял",s:"CFS не может подать или выгрузить",
- b:`<ol><li>Проверь, что катушка свободно крутится и пруток не перехлестнулся на ней</li><li>Осмотри кончик: если он размочален или с утолщением, отрежь его</li><li>Проверь трубки от CFS к голове на изломы</li><li>Выгрузи пруток через меню и заряди заново</li><li>Картонные катушки часто цепляются: перемотай пруток на пластиковую или надень переходное кольцо</li></ol>`},
-{i:"💧",t:"Влажность в CFS",s:"индикатор и осушитель",
- b:`<ul><li>В CFS стоит осушитель. Когда индикатор показывает высокую влажность, высуши или замени его</li><li>PETG, TPU и нейлон не храни долго в CFS. Убирай их в герметичный пакет с силикагелем</li><li>CFS только хранит пластик, но не сушит его. Сырую катушку сначала просуши в сушилке</li></ul>`},
-{i:"🤖",t:"AI-камеры K2 Pro",s:"слежение за печатью и калибровка",
- b:`<ul><li>Камера в камере замечает «спагетти» и посторонние предметы на столе, может поставить печать на паузу</li><li>Камера у сопла помогает с калибровкой потока</li><li>Включи уведомления в Creality Cloud, чтобы получать оповещения на телефон</li><li>Протирай объективы мягкой салфеткой раз в месяц</li></ul>`},
-{i:"⚙️",t:"Полезные советы по K2 Pro",s:"что стоит знать с первых дней",
- b:`<ul><li>Обновляй прошивку: Creality часто чинит ошибки CFS и калибровки</li><li>Работай в Creality Print. В нём есть готовые профили K2 Pro</li><li>Wi-Fi только на 2,4 ГГц. Если связь нестабильна, используй кабель LAN</li><li>Тихий режим снижает шум, но и скорость. Включай его ночью</li><li>Документация и коды ошибок: wiki.creality.com</li></ul>`}
-];
-document.getElementById('clist').innerHTML=C.map(c=>`<div class="card"><div class="card-h"><div class="ico">${c.i}</div><div class="t"><b>${c.t}</b><span>${c.s}</span></div><div class="chev">▸</div></div><div class="card-b" style="padding-top:12px">${c.b}</div></div>`).join('');
-
-/* ---------- УХОД ---------- */
-const M=[
-{g:"Перед каждой печатью",id:"each",items:[["Пластина чистая, без следов пальцев",""],["Нет пластика на кончике сопла",""],["Катушка свободно крутится, пруток не перехлестнут",""],["Лоток для отходов пустой",""]]},
-{g:"Раз в неделю",id:"week",items:[["Помыть PEI-пластину водой со средством",""],["Убрать отходы и крошки со дна камеры",""],["Проверить индикатор влажности CFS",""]]},
-{g:"Раз в месяц",id:"month",items:[["Протереть направляющие и рельсы сухой безворсовой салфеткой","Смазку — только по инструкции Creality"],["Проверить натяжение ремней","Звучат одинаково на обеих сторонах"],["Почистить латунной щёткой сопло и датчик",""],["Протереть объективы AI-камер",""],["Проверить обновления прошивки",""]]},
-{g:"Раз в 3–6 месяцев",id:"q",items:[["Смазать ходовые винты Z","Тонким слоем, по инструкции Creality"],["Проверить или заменить угольный фильтр","Особенно если печатаешь ABS/ASA"],["Осмотреть сопло, при износе заменить",""],["Продуть вентиляторы от пыли",""]]}
-];
-function renderM(){
-  const st=store.get('k2care',{});
-  document.getElementById('mlist').innerHTML=M.map(g=>{
-    const done=g.items.filter((_,i)=>st[g.id+i]).length,pct=Math.round(done/g.items.length*100);
-    return `<div class="card"><div class="grp-h"><b>${g.g}</b><button class="reset" data-g="${g.id}">Сбросить</button></div>
-    <div class="bar"><i style="width:${pct}%"></i></div>
-    ${g.items.map((it,i)=>`<div class="check ${st[g.id+i]?'done':''}" data-k="${g.id+i}"><div class="box"></div><div class="ct">${it[0]}${it[1]?`<small>${it[1]}</small>`:''}${st[g.id+i]?`<small>✓ ${st[g.id+i]}</small>`:''}</div></div>`).join('')}</div>`}).join('');
-}
-document.getElementById('mlist').onclick=e=>{
-  const st=store.get('k2care',{});
-  const r=e.target.closest('.reset');
-  if(r){Object.keys(st).forEach(k=>{if(k.startsWith(r.dataset.g))delete st[k]});store.set('k2care',st);renderM();return}
-  const c=e.target.closest('.check');if(!c)return;
-  const k=c.dataset.k;if(st[k])delete st[k];else st[k]=new Date().toLocaleDateString('ru-RU');
-  store.set('k2care',st);renderM();
-};
-
-/* ---------- ЗАМЕТКИ ---------- */
-function renderN(){
-  const N=store.get('k2notes',[]);
-  document.getElementById('nlist').innerHTML=N.length?N.map((n,i)=>`<div class="note"><div class="note-h"><b>${esc(n.t||'Без названия')}</b><button class="del" data-i="${i}" aria-label="Удалить">×</button></div><time>${n.d}</time><p>${esc(n.b)}</p></div>`).join(''):`<div class="empty">Пока заметок нет. Запиши свой первый удачный профиль.</div>`;
-}
-document.getElementById('nadd').onclick=()=>{
-  const t=document.getElementById('nt').value.trim(),b=document.getElementById('nb').value.trim();
-  if(!t&&!b)return;const N=store.get('k2notes',[]);N.unshift({t,b,d:new Date().toLocaleDateString('ru-RU')});
-  store.set('k2notes',N);document.getElementById('nt').value='';document.getElementById('nb').value='';renderN();
-};
-document.getElementById('nlist').onclick=e=>{const d=e.target.closest('.del');if(!d)return;
-  if(!d.classList.contains('sure')){d.classList.add('sure');d.textContent='Удалить?';setTimeout(()=>{d.classList.remove('sure');d.textContent='×'},2500);return}
-  const N=store.get('k2notes',[]);N.splice(+d.dataset.i,1);store.set('k2notes',N);renderN()};
-
-/* ---------- ОБЩЕЕ ---------- */
-document.addEventListener('click',e=>{const h=e.target.closest('.card-h');if(h)h.parentElement.classList.toggle('open')});
-document.getElementById('nav').onclick=e=>{const b=e.target.closest('button');if(!b)return;
-  document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x===b));
-  document.querySelectorAll('section').forEach(s=>s.classList.toggle('active',s.id===b.dataset.s));window.scrollTo(0,0)};
-renderCats();renderP();renderM();renderN();
-</script>
+<script src="js/problems.js"></script>
+<script src="js/printers.js"></script>
+<script src="js/materials.js"></script>
+<script src="js/guide.js"></script>
+<script src="js/app.js"></script>
 </body>
 </html>
