@@ -108,7 +108,7 @@ function renderPr(){
 }
 $('prbrands').onclick=e=>{const b=e.target.closest('.chip');if(!b)return;prb=b.dataset.v;renderPr()};
 $('prlist').addEventListener('click',e=>{const b=e.target.closest('[data-gob]');if(!b)return;
-  pbrand=b.dataset.gob;store.set('k2brand',pbrand);pcat='Все';$('q').value='';renderPChips();renderP();go('s-problems')});
+  pbrand=b.dataset.gob;store.set('k2brand',pbrand);pcat='Все';$('q').value='';renderPChips();renderP();goRef('problems')});
 
 /* ================= МАТЕРИАЛЫ ================= */
 let mg='Все';
@@ -220,22 +220,37 @@ function calc(){
   const mvs=c.sp*c.lh*c.lw;
   $('c-res3').innerHTML=`<div class="tot" style="border:none;margin:0;padding:0"><span>Расход</span><span>${mvs.toFixed(1).replace('.',',')} мм³/с</span></div><div style="color:var(--muted);font-size:13px"><span>${mvs>25?'Много для большинства хотэндов — возможна недоэкструзия':mvs>15?'Нужен «скоростной» пластик и хороший хотэнд':'Обычно комфортно для PLA'}</span></div>`;
 }
+const GSECS=GUIDE.filter(s=>!s.tool); // «Крепёж и допуски» живёт во вкладке «Инструменты», но поиск находит и его
 function renderG(){
   const q=$('gq').value.trim().toLowerCase();
-  $('gsecs').innerHTML=chips(GUIDE.map(s=>[s.sec,s.sec]),q?'':gs);
+  $('gsecs').innerHTML=chips(GSECS.map(s=>[s.sec,s.sec]),q?'':gs);
   if(q){
     const hits=[];GUIDE.forEach(s=>s.items.forEach(a=>{if((a.t+' '+a.s+' '+a.b.replace(/<[^>]+>/g,' ')).toLowerCase().includes(q))hits.push({a,sec:s.sec})}));
     $('glist').innerHTML=hits.length?hits.map(({a,sec})=>card(a.i,a.t,`${sec} · ${a.s}`,a.b)).join(''):emptyBox('📚','Об этом я пока не писал','Попробуй другое слово — например, «ретракт», «калибровка» или «сушка».');
     return;
   }
-  const S=GUIDE.find(s=>s.sec===gs)||GUIDE[0];
-  if(S.tools){$('glist').innerHTML=`<div class="chips-lbl">Калькуляторы</div>`+toolsHTML()+calibHTML();calc();calibCalc();return}
+  const S=GSECS.find(s=>s.sec===gs)||GSECS[0];
   $('glist').innerHTML=S.items.map(a=>card(a.i,a.t,a.s,a.b)).join('');
 }
 $('gsecs').onclick=e=>{const b=e.target.closest('.chip');if(!b)return;gs=b.dataset.v;$('gq').value='';renderG()};
 $('gq').oninput=renderG;
-$('glist').addEventListener('input',e=>{if(e.target.id&&e.target.id.startsWith('c-'))calc();if(e.target.id&&e.target.id.startsWith('k-'))calibCalc()});
-$('glist').addEventListener('change',e=>{if(e.target.id==='c-mat')calc();if(e.target.id==='k-fw')calibCalc()});
+
+/* ================= ИНСТРУМЕНТЫ ================= */
+// плитки сверху — быстрый переход к нужному калькулятору (открывают карточку и прокручивают к ней)
+const TOOLS=[['🧮','Стоимость печати','c-w'],['📏','Остаток катушки','c-net'],['🔄','Расход, мм³/с','c-sp'],
+  ['🧪','Экструдер','k-old'],['🌊','Поток','k-fr'],['🗼','Pressure Advance','k-ps'],['🌡️','Башни','k-ts'],['📐','Усадка','k-de'],['🔩','Крепёж и допуски','t-fast']];
+function renderTools(){
+  const F=GUIDE.find(s=>s.tool);
+  $('tgrid').innerHTML=TOOLS.map(([i,t,id])=>`<button class="tl" data-to="${id}"><i>${i}</i>${t}</button>`).join('');
+  $('tlist').innerHTML=`<div class="chips-lbl">Калькуляторы</div>`+toolsHTML()+calibHTML()
+    +(F?`<div class="chips-lbl" id="t-fast" style="margin-top:16px">${F.sec}</div>`+F.items.map(a=>card(a.i,a.t,a.s,a.b)).join(''):'');
+  calc();calibCalc();
+}
+$('tgrid').onclick=e=>{const b=e.target.closest('[data-to]');if(!b)return;const el=$(b.dataset.to);if(!el)return;buzz(6);
+  const c=el.closest('.card');if(c)c.classList.add('open');
+  (c||el).scrollIntoView({behavior:'smooth',block:'start'})};
+$('tlist').addEventListener('input',e=>{if(e.target.id&&e.target.id.startsWith('c-'))calc();if(e.target.id&&e.target.id.startsWith('k-'))calibCalc()});
+$('tlist').addEventListener('change',e=>{if(e.target.id==='c-mat')calc();if(e.target.id==='k-fw')calibCalc()});
 
 /* ================= ВИДЕО ================= */
 // RSS-ленты YouTube. На телефоне запросы идут через CapacitorHttp (обходит CORS).
@@ -415,4 +430,13 @@ function go(id){
   if(id==='s-my'&&!$('my-printer').hidden)prShow();else if(id!=='s-my')prHide();
 }
 $('nav').onclick=e=>{const b=e.target.closest('button');if(b)go(b.dataset.s)};
-renderTip();renderPChips();renderP();renderPr();renderMat();renderBrands();renderG();renderM();renderN();
+// Справочник: проблемы / принтеры / материалы / статьи
+function goRef(v,keep){
+  if(!$('r-'+v))v='problems';
+  [...$('rseg').children].forEach(x=>x.classList.toggle('on',x.dataset.v===v));
+  ['problems','printers','materials','guide'].forEach(k=>$('r-'+k).hidden=k!==v);
+  store.set('k2ref',v);if(!$('s-ref').classList.contains('active'))go('s-ref');else if(!keep)window.scrollTo(0,0);
+}
+$('rseg').onclick=e=>{const b=e.target.closest('button');if(b){buzz(5);goRef(b.dataset.v)}};
+renderTip();renderPChips();renderP();renderPr();renderMat();renderBrands();renderG();renderTools();renderM();renderN();
+goRef(store.get('k2ref','problems'),true);

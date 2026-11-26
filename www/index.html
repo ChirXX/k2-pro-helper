@@ -14,8 +14,10 @@
 </header>
 
 <main>
-  <!-- ПРОБЛЕМЫ -->
-  <section id="s-problems" class="active">
+  <!-- СПРАВОЧНИК: проблемы, принтеры, материалы, статьи -->
+  <section id="s-ref" class="active">
+    <div class="seg rtabs" id="rseg"><button data-v="problems" class="on"><i>🛠️</i>Проблемы</button><button data-v="printers"><i>🖨️</i>Принтеры</button><button data-v="materials"><i>🧵</i>Материалы</button><button data-v="guide"><i>📖</i>Статьи</button></div>
+  <div id="r-problems">
     <h2>Что случилось?</h2>
     <p class="sub">Опиши, что видишь, — подскажу, как починить. Меняй по одной настройке за раз: так проще найти виновника.</p>
     <div class="daytip" id="daytip"></div>
@@ -24,19 +26,17 @@
     <div class="chips-lbl">Мой принтер</div>
     <div class="chips alt" id="pbrands"></div>
     <div id="plist"></div>
-  </section>
+  </div>
 
-  <!-- ПРИНТЕРЫ -->
-  <section id="s-printers">
+  <div id="r-printers" hidden>
     <h2>Принтеры</h2>
     <p class="sub">Знакомься с машинами: сильные стороны, капризы и как с ними подружиться.</p>
     <div class="chips" id="prbrands"></div>
     <div id="prlist"></div>
     <div class="warn">⚠️ Характеристики — по данным производителей. Модели обновляются: точные данные и инструкции смотри на официальном сайте (указан в карточке).</div>
-  </section>
+  </div>
 
-  <!-- МАТЕРИАЛЫ -->
-  <section id="s-materials">
+  <div id="r-materials" hidden>
     <h2>Материалы</h2>
     <div class="seg" id="mseg"><button data-v="mat" class="on">Пластики</button><button data-v="brands">Производители</button></div>
     <div id="m-mat">
@@ -63,15 +63,23 @@
       <div id="suplist"></div>
       <div id="brandlist"></div>
     </div>
-  </section>
+  </div>
 
-  <!-- СПРАВОЧНИК -->
-  <section id="s-guide">
-    <h2>Справочник</h2>
+  <div id="r-guide" hidden>
+    <h2>Статьи</h2>
     <p class="sub">От первого включения до тонкой настройки — простыми словами.</p>
     <input class="search" id="gq" type="search" placeholder="Что хочешь узнать?" autocomplete="off">
     <div class="chips" id="gsecs"></div>
     <div id="glist"></div>
+  </div>
+  </section>
+
+  <!-- ИНСТРУМЕНТЫ -->
+  <section id="s-tools">
+    <h2>Инструменты</h2>
+    <p class="sub">Посчитать, откалибровать, подобрать отверстие. Всё, что вводишь, запоминается.</p>
+    <div class="tgrid" id="tgrid"></div>
+    <div id="tlist"></div>
   </section>
 
   <!-- ИДЕИ: модели и видео -->
@@ -121,6 +129,18 @@
       <h2>Мой принтер</h2>
       <p class="sub">Следи за печатью с телефона: температура, прогресс, сколько осталось.</p>
       <div id="pr-body"></div>
+      <div class="card" id="pr-remote" style="margin-top:14px">
+        <div class="card-h"><div class="ico">🌍</div><div class="t"><b>Смотреть принтер не из дома</b><span>почему не работает через мобильный интернет</span></div><div class="chev">▸</div></div>
+        <div class="card-b">
+          <p>Приложение подключается к принтеру напрямую, по адресу вида <b>192.168.x.x</b>. Такие адреса существуют только внутри домашней сети, поэтому из мобильного интернета или чужого Wi-Fi до принтера не достучаться. Это ограничение сети, а не приложения.</p>
+          <div class="lbl">Что можно сделать</div>
+          <ul>
+            <li><b>Облако производителя.</b> У Creality это приложение Creality Cloud: принтер привязывается к аккаунту и виден откуда угодно. Для Klipper есть сервисы Obico и OctoEverywhere.</li>
+            <li><b>VPN домой.</b> WireGuard-сервер на роутере (есть в Keenetic, MikroTik, OpenWrt и многих других) или Tailscale на домашнем компьютере / Raspberry Pi в режиме subnet router. Включил VPN на телефоне — и это приложение видит принтер по тому же адресу, что и дома.</li>
+          </ul>
+          <div class="warn">⚠️ Не открывай порты принтера (9999, 7125, 8000) в интернет через проброс портов на роутере: у принтера нет пароля, и управлять им сможет кто угодно.</div>
+        </div>
+      </div>
     </div>
     <div id="my-journal" hidden>
       <h2>Журнал печати</h2>
@@ -145,10 +165,8 @@
 </main>
 
 <nav id="nav">
-  <button data-s="s-problems" class="on"><span class="ni">🛠️</span>Проблемы</button>
-  <button data-s="s-printers"><span class="ni">🖨️</span>Принтеры</button>
-  <button data-s="s-materials"><span class="ni">🧵</span>Материалы</button>
-  <button data-s="s-guide"><span class="ni">📚</span>Справочник</button>
+  <button data-s="s-ref" class="on"><span class="ni">📚</span>Справочник</button>
+  <button data-s="s-tools"><span class="ni">🧰</span>Инструменты</button>
   <button data-s="s-video"><span class="ni">🧩</span>Идеи</button>
   <button data-s="s-my"><span class="ni">📝</span>Моё</button>
 </nav>

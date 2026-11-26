@@ -11,6 +11,7 @@ const prList=()=>store.get('k2printers',[]);
 const tfmt=s=>{s=Math.max(0,Math.round(+s||0));const h=Math.floor(s/3600),m=Math.floor(s%3600/60);return h?`${h} ч ${m} мин`:m?`${m} мин`:`${s} с`};
 const num=v=>{const n=parseFloat(v);return isFinite(n)?n:null};
 const deg=v=>v==null?'—':Math.round(v)+'°';
+const onCell=()=>{const c=navigator.connection;return !!c&&c.type==='cellular'};
 const validHost=h=>/^[a-z0-9]([a-z0-9.-]{0,251}[a-z0-9])?$/i.test(h)&&!/\.\./.test(h);
 
 /* ---------- нормализованное состояние ---------- */
@@ -180,7 +181,25 @@ async function camWebRTC(P,box){
   setTimeout(()=>{if(PS.camPc===pc&&!v.srcObject)box.innerHTML='<div class="cam-msg">Камера K2 не прислала видео. Это экспериментальная функция: на части телефонов принтер не принимает подключение. Смотри камеру в Creality Print.</div>'},10000);
 }
 
-/* ---------- отрисовка ---------- */
+/* ---------- отрисовка ----------
+   Данные приходят несколько раз в секунду. Перерисовывать панель целиком нельзя: картинка «прыгает»,
+   а видео камеры при каждом пересоздании останавливается. Поэтому меняем только то, что изменилось. */
+function morph(a,b){
+  if(a.nodeType!==b.nodeType||a.nodeName!==b.nodeName||(a.id==='pr-cam')!==(b.id==='pr-cam')){a.replaceWith(b);return}
+  if(a.nodeType===3||a.nodeType===8){if(a.data!==b.data)a.data=b.data;return}
+  if(a.nodeType!==1||a.id==='pr-cam'||a.isEqualNode(b))return;
+  for(const at of [...a.attributes])if(!b.hasAttribute(at.name))a.removeAttribute(at.name);
+  for(const at of [...b.attributes])if(a.getAttribute(at.name)!==at.value)a.setAttribute(at.name,at.value);
+  morphKids(a,b);
+}
+function morphKids(a,b){
+  const ac=[...a.childNodes],bc=[...b.childNodes];
+  bc.forEach((n,i)=>{if(i<ac.length)morph(ac[i],n);else a.appendChild(n)});
+  for(let i=bc.length;i<ac.length;i++)ac[i].remove();
+}
+function patchHTML(box,html){const t=document.createElement('div');t.innerHTML=html;morphKids(box,t)}
+const prevBad=new Set();
+function prevFail(img){prevBad.add(img.getAttribute('src'));img.remove()}
 function prForm(i){
   const P=i>=0?prList()[i]:{n:'',host:'',type:'creality',ctl:true,nt:true};
   return `<div class="card open" id="pr-form"><div class="card-b" style="display:block;border:none;padding-top:6px">
@@ -189,7 +208,7 @@ function prForm(i){
     <label class="fl">Тип</label><select class="f" id="pf-t">${PR_TYPES.map(([v,l])=>`<option value="${v}" ${v===P.type?'selected':''}>${l}</option>`).join('')}</select>
     <label class="ck"><input type="checkbox" id="pf-c" ${P.ctl!==false?'checked':''}> Разрешить управление: пауза, стоп, температуры, скорость, подсветка</label>
     <label class="ck"><input type="checkbox" id="pf-nt" ${P.nt!==false?'checked':''}> Уведомить, когда печать должна закончиться — даже если приложение закрыто</label>
-    <div class="tip">💡 IP-адрес показан на экране принтера в настройках сети (Wi-Fi / LAN). Телефон должен быть в той же Wi-Fi сети. Лучше закрепить за принтером постоянный адрес в роутере.</div>
+    <div class="tip">💡 IP-адрес показан на экране принтера в настройках сети (Wi-Fi / LAN). Телефон должен быть в той же Wi-Fi сети — из мобильного интернета принтер напрямую не виден. Лучше закрепить за принтером постоянный адрес в роутере.</div>
     <div class="row">${prList().length?'<button class="btn2" id="pf-cancel">Передумал</button>':''}<button class="btn2 acc" id="pf-save" data-i="${i}">Подключить</button></div>
   </div></div>`;
 }
@@ -203,13 +222,16 @@ function renderPrinter(){
   const chipsH=`<div class="chips">${L.map((p,i)=>`<button class="chip ${i===PS.idx?'on':''}" data-pi="${i}">🖨️ ${esc(p.n||p.host)}</button>`).join('')}<button class="chip" id="pr-add">＋</button></div>`;
   let main;
   if(PS.status==='connecting')main=`<div class="pr-st"><span class="vstatus busy">Подключаюсь к ${esc(P.host)}…</span></div>`;
-  else if(PS.status==='fail'||PS.status==='lost')main=emptyBox('🔌',esc(PS.err||'Нет связи'),`Проверь, что принтер включён, телефон в той же Wi-Fi сети, а адрес ${esc(P.host)} верный.`,'<button class="btn2 acc" id="pr-retry">Попробовать снова</button>');
+  else if(PS.status==='fail'||PS.status==='lost')main=emptyBox(onCell()?'📶':'🔌',onCell()?'Телефон в мобильном интернете':esc(PS.err||'Нет связи'),
+    onCell()?`Из мобильного интернета до домашнего адреса ${esc(P.host)} не достучаться — он виден только внутри домашней сети. Подключись к домашнему Wi-Fi или включи VPN домой (см. «Смотреть принтер не из дома» ниже).`
+    :`Проверь, что принтер включён, телефон в той же Wi-Fi сети (или включён VPN домой), а адрес ${esc(P.host)} верный.`,'<button class="btn2 acc" id="pr-retry">Попробовать снова</button>');
   else if(v){
     const [ico,txt]=ST_TXT[v.s]||ST_TXT.idle,job=['printing','paused','preparing','done'].includes(v.s)&&v.file;
+    const prevSrc=`http://${P.host}/downloads/original/current_print_image.png?t=${encodeURIComponent(v.file)}`;
     const eta=v.left>0&&v.s==='printing'?new Date(Date.now()+v.left*1000).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}):'';
     main=`<div class="card pr-live s-${v.s}"><div class="pr-top"><span class="pr-pill">${ico} ${txt}</span><span class="vstatus" id="pr-upd">${updText()}</span></div>
       ${v.err?`<div class="warn" style="margin:10px 16px 0">⚠️ Код ошибки: ${esc(String(v.err))}${v.errMsg?' — '+esc(v.errMsg):''}. Подробности — на экране принтера.</div>`:''}
-      ${job?`<div class="pr-job">${P.type==='creality'?`<img class="pr-prev" alt="" src="http://${esc(P.host)}/downloads/original/current_print_image.png?t=${encodeURIComponent(v.file)}" onerror="this.remove()">`:''}
+      ${job?`<div class="pr-job">${P.type==='creality'&&!prevBad.has(prevSrc)?`<img class="pr-prev" alt="" src="${esc(prevSrc)}" onerror="prevFail(this)">`:''}
         <div class="pr-jt"><b>${esc(v.file)}</b>
         <div class="pr-big">${v.prog!=null?Math.floor(v.prog):0}<small>%</small></div>
         <div class="bar" style="margin:6px 0 0"><i style="width:${Math.min(100,v.prog||0)}%"></i></div></div></div>
@@ -222,13 +244,12 @@ function renderPrinter(){
       ${P.ctl!==false?ctlHTML(P,v,job):''}
       <div class="pr-foot">${v.light!=null?`<span>💡 Подсветка ${v.light?'вкл.':'выкл.'}</span>`:''}${v.speed!=null&&job?`<span>⚡ Скорость ${Math.round(v.speed)} %</span>`:''}${v.model?`<span>${esc(v.host||v.model)}</span>`:''}</div>
     </div>
-    <button class="btn2 more" id="pr-camb">${PS.cam?'Скрыть камеру':'📷 Показать камеру'}</button><div id="pr-cam" class="pr-cam" ${PS.cam?'':'hidden'}></div>`;
+    <button class="btn2 more" id="pr-camb">${PS.cam?'Скрыть камеру':'📷 Показать камеру'}</button><div id="pr-cam" class="pr-cam" hidden></div>`;
   }else main=`<div class="pr-st"><span class="vstatus busy">Жду данные от принтера…</span></div>`;
-  const keepCam=PS.cam&&$('pr-cam')&&$('pr-cam').firstChild?$('pr-cam'):null;
-  box.innerHTML=chipsH+main+`<div class="row"><button class="btn2" id="pr-edit">⚙️ Изменить</button><button class="btn2 del" id="pr-del" style="font-size:14px">Удалить</button></div>
+  const html=chipsH+main+`<div class="row"><button class="btn2" id="pr-edit">⚙️ Изменить</button><button class="btn2 del" id="pr-del" style="font-size:14px">Удалить</button></div>
     <p class="sub" style="margin-top:12px">${P.ctl!==false?'Управление работает в той же Wi-Fi сети. Остановка печати и смена температур во время печати просят подтверждение.':'Только наблюдение: команды на принтер не отправляются. Включить управление — в «⚙️ Изменить».'}</p>`;
-  // не пересоздаём видео при каждом обновлении цифр
-  if(keepCam&&$('pr-cam')){$('pr-cam').replaceWith(keepCam)}else if(PS.cam&&v&&$('pr-cam')&&!PS.camPc)camStart();
+  patchHTML(box,html);
+  const cam=$('pr-cam');if(cam){cam.hidden=!PS.cam;if(PS.cam&&!cam.firstChild)camStart()}
 }
 
 /* ---------- события ---------- */
@@ -314,7 +335,7 @@ async function onCtl(k){
     const o=sheet(`<b class="sh-t">🌡 Температуры</b>
       <div class="chips" style="padding-top:8px">${TPRESET.map(([n,a,b])=>`<button class="chip" data-tp="${a},${b}">${n}${a?` ${a}/${b}°`:''}</button>`).join('')}</div>
       ${row('t-noz','Сопло',v.nozT,v.maxNoz)}${row('t-bed','Стол',v.bedT,v.maxBed)}${v.boxCtl?row('t-box','Камера (подогрев)',v.boxT,v.maxBox):''}
-      <p class="sh-p" style="font-size:13px">Заданные значения уже стоят в полях. 0 — выключить нагрев. Температуры для своего пластика смотри на катушке и во вкладке «Материалы».</p>
+      <p class="sh-p" style="font-size:13px">Заданные значения уже стоят в полях. 0 — выключить нагрев. Температуры для своего пластика смотри на катушке и в Справочнике → «Материалы».</p>
       <div class="row"><button class="btn2" data-x="0">Отмена</button><button class="btn2 acc" data-x="1">Установить</button></div>`);
     o.addEventListener('click',async e=>{
       const tp=e.target.closest('[data-tp]');if(tp){const [a,b]=tp.dataset.tp.split(',');$('t-noz').value=a;$('t-bed').value=b;return}
