@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">K2 Pro Помощник</string>
+    <string name="title_activity_main">K2 Pro Помощник</string>
+    <string name="package_name">ee.home.k2prohelper</string>
+    <string name="custom_url_scheme">ee.home.k2prohelper</string>
+</resources>

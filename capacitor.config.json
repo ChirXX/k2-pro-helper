@@ -1,0 +1,9 @@
+{
+  "appId": "ee.home.k2prohelper",
+  "appName": "K2 Pro Помощник",
+  "webDir": "www",
+  "android": {
+    "backgroundColor": "#0E1116",
+    "adjustMarginsForEdgeToEdge": "force"
+  }
+}
