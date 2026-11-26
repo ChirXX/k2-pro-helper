@@ -392,7 +392,8 @@ $('nlist').onclick=e=>{const d=e.target.closest('.del');if(!d)return;
   toast('Заметка удалена',()=>{const N2=store.get('k2notes',[]);N2.splice(i,0,gone);store.set('k2notes',N2);renderN()})};
 $('myseg').onclick=e=>{const b=e.target.closest('button');if(!b)return;
   [...$('myseg').children].forEach(x=>x.classList.toggle('on',x===b));
-  $('my-care').hidden=b.dataset.v!=='care';$('my-notes').hidden=b.dataset.v!=='notes'};
+  $('my-care').hidden=b.dataset.v!=='care';$('my-notes').hidden=b.dataset.v!=='notes';$('my-printer').hidden=b.dataset.v!=='printer';
+  if(b.dataset.v==='printer')prShow();else prHide()};
 
 /* ================= ОБЩЕЕ ================= */
 document.addEventListener('click',e=>{const h=e.target.closest('.card-h');if(h)h.parentElement.classList.toggle('open')});
@@ -400,6 +401,7 @@ function go(id){
   document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x.dataset.s===id));
   document.querySelectorAll('main>section').forEach(s=>s.classList.toggle('active',s.id===id));window.scrollTo(0,0);
   if(id==='s-video'){if($('i-video').hidden)startModels();else startVideo()}
+  if(id==='s-my'&&!$('my-printer').hidden)prShow();else if(id!=='s-my')prHide();
 }
 $('nav').onclick=e=>{const b=e.target.closest('button');if(b)go(b.dataset.s)};
 renderTip();renderPChips();renderP();renderPr();renderMat();renderBrands();renderG();renderM();renderN();

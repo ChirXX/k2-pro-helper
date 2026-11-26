@@ -115,8 +115,13 @@
 
   <!-- МОЁ -->
   <section id="s-my">
-    <div class="seg" id="myseg"><button data-v="care" class="on">Уход</button><button data-v="notes">Заметки</button></div>
-    <div id="my-care">
+    <div class="seg" id="myseg"><button data-v="printer" class="on">📡 Принтер</button><button data-v="care">Уход</button><button data-v="notes">Заметки</button></div>
+    <div id="my-printer">
+      <h2>Мой принтер</h2>
+      <p class="sub">Следи за печатью с телефона: температура, прогресс, сколько осталось.</p>
+      <div id="pr-body"></div>
+    </div>
+    <div id="my-care" hidden>
       <h2>Забота о принтере</h2>
       <p class="sub">Пять минут ухода экономят часы ремонта. Отметки хранятся только у тебя на телефоне.</p>
       <div id="mlist"></div>
@@ -150,5 +155,6 @@
 <script src="js/videos.js"></script>
 <script src="js/app.js"></script>
 <script src="js/models.js"></script>
+<script src="js/printer.js"></script>
 </body>
 </html>
