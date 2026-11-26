@@ -14,6 +14,16 @@ function twoTapDelete(btn){ // true — если подтверждено
 }
 
 /* ================= ПРОБЛЕМЫ ================= */
+// Поиск видео по проблеме: русский запрос, английский запрос, Rutube
+function videoLinks(p){
+  const ru=(p.t.replace(/[«»"]/g,'')+(p.b?' '+BRANDS[p.b]:'')+' 3д печать').trim();
+  const en=(window.PROBLEM_EN&&PROBLEM_EN[p.t])||ru;
+  const u=encodeURIComponent;
+  return `<div class="lbl">Видео по теме</div><div class="vlinks">
+    <a href="https://www.youtube.com/results?search_query=${u(ru)}" target="_blank" rel="noopener">▶ YouTube RU</a>
+    <a href="https://www.youtube.com/results?search_query=${u(en)}" target="_blank" rel="noopener">▶ YouTube EN</a>
+    <a href="https://rutube.ru/search/?query=${u(ru)}" target="_blank" rel="noopener">▶ Rutube</a></div>`;
+}
 let pcat='Все',pbrand=store.get('k2brand','all');
 if(pbrand!=='all'&&!BRANDS[pbrand])pbrand='all';
 function renderPChips(){
@@ -27,7 +37,7 @@ function renderP(){
   // сначала проблемы выбранной марки
   if(pbrand!=='all')L.sort((a,b)=>(b.b===pbrand)-(a.b===pbrand));
   $('plist').innerHTML=L.length?L.map(p=>card(p.i,p.t,(p.b?`<i class="tag">${BRANDS[p.b]}</i>`:'')+p.s,
-    `<div class="lbl">Почему</div><ul>${li(p.why)}</ul><div class="lbl">Что сделать</div><ol>${li(p.fix)}</ol>${p.tip?`<div class="tip">💡 ${p.tip}</div>`:''}`)).join('')
+    `<div class="lbl">Почему</div><ul>${li(p.why)}</ul><div class="lbl">Что сделать</div><ol>${li(p.fix)}</ol>${p.tip?`<div class="tip">💡 ${p.tip}</div>`:''}${videoLinks(p)}`)).join('')
     :`<div class="empty">Ничего не нашлось. Попробуй другое слово или выбери «Все».</div>`;
 }
 $('pcats').onclick=e=>{const b=e.target.closest('.chip');if(!b)return;pcat=b.dataset.v;renderPChips();renderP()};
@@ -179,6 +189,108 @@ $('gq').oninput=renderG;
 $('glist').addEventListener('input',e=>{if(e.target.id&&e.target.id.startsWith('c-'))calc()});
 $('glist').addEventListener('change',e=>{if(e.target.id==='c-mat')calc()});
 
+/* ================= ВИДЕО ================= */
+// RSS-ленты YouTube. На телефоне запросы идут через CapacitorHttp (обходит CORS).
+const VC_TTL=6*3600e3; // обновлять не чаще раза в 6 часов, если не нажали «Обновить»
+let vfeed='fun',vlang='all',vch='all',vbusy=false;
+const allChannels=()=>[...CHANNELS,...store.get('k2channels',[]).map(c=>({...c,mine:true}))];
+const feedChannels=()=>allChannels().filter(c=>c.f===vfeed&&(vlang==='all'||c.l===vlang));
+function parseRSS(xml){
+  const d=new DOMParser().parseFromString(xml,'application/xml');
+  if(d.getElementsByTagName('parsererror').length)throw new Error('bad xml');
+  return [...d.getElementsByTagName('entry')].map(e=>({
+    v:(e.getElementsByTagName('yt:videoId')[0]||{}).textContent,
+    t:(e.getElementsByTagName('title')[0]||{}).textContent||'',
+    d:(e.getElementsByTagName('published')[0]||{}).textContent||''
+  })).filter(x=>/^[\w-]{11}$/.test(x.v||'')).slice(0,15);
+}
+async function fetchText(url){
+  const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),15000);
+  try{const r=await fetch(url,{signal:ctl.signal});if(!r.ok)throw new Error('HTTP '+r.status);return await r.text()}
+  finally{clearTimeout(tm)}
+}
+async function loadFeeds(force){
+  if(vbusy)return;vbusy=true;$('vstatus').textContent='Загружаю…';
+  const cache=store.get('k2vcache',{}),now=Date.now();
+  const need=feedChannels().filter(c=>force||!cache[c.id]||now-cache[c.id].at>VC_TTL);
+  let ok=0,fail=0;
+  await Promise.all(need.map(async c=>{
+    try{cache[c.id]={at:Date.now(),items:parseRSS(await fetchText('https://www.youtube.com/feeds/videos.xml?channel_id='+c.id))};ok++}
+    catch(e){fail++}
+  }));
+  // чистим кэш удалённых каналов
+  const ids=new Set(allChannels().map(c=>c.id));Object.keys(cache).forEach(k=>{if(!ids.has(k))delete cache[k]});
+  store.set('k2vcache',cache);vbusy=false;
+  renderV(need.length&&fail===need.length?'Нет связи — показаны сохранённые видео':fail?`Обновлено, не загрузилось каналов: ${fail}`:'');
+}
+function ago(iso){
+  const t=Date.parse(iso);if(!t)return '';const d=Math.floor((Date.now()-t)/864e5);
+  if(d<1)return 'сегодня';if(d<2)return 'вчера';if(d<7)return d+' дн. назад';if(d<35)return Math.floor(d/7)+' нед. назад';
+  return new Date(t).toLocaleDateString('ru-RU');
+}
+function renderV(msg){
+  $('vlang').innerHTML=chips([['all','Все языки'],['ru','Русский'],['en','English']],vlang);
+  const chs=feedChannels();if(vch!=='all'&&!chs.some(c=>c.id===vch))vch='all';
+  $('vchans').innerHTML=chips([['all','Все каналы'],...chs.map(c=>[c.id,esc(c.n)])],vch);
+  const cache=store.get('k2vcache',{});
+  // в общей ленте — не больше 3 свежих роликов с канала, чтобы частые каналы не вытесняли остальных
+  const per=vch==='all'?3:15;
+  const items=[];chs.filter(c=>vch==='all'||c.id===vch).forEach(c=>((cache[c.id]||{}).items||[]).slice().sort((a,b)=>Date.parse(b.d)-Date.parse(a.d)).slice(0,per).forEach(it=>items.push({...it,c})));
+  items.sort((a,b)=>Date.parse(b.d)-Date.parse(a.d));
+  const times=chs.map(c=>(cache[c.id]||{}).at).filter(Boolean);
+  $('vstatus').textContent=msg||(times.length?'Обновлено: '+new Date(Math.min(...times)).toLocaleString('ru-RU',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'');
+  $('vlist').innerHTML=items.length?items.slice(0,60).map(it=>`<a class="vid" href="https://www.youtube.com/watch?v=${it.v}" target="_blank" rel="noopener">
+    <div class="th"><img loading="lazy" alt="" src="https://i.ytimg.com/vi/${it.v}/mqdefault.jpg" onerror="this.remove()"></div>
+    <div class="vt"><b>${esc(it.t)}</b><span>${esc(it.c.n)} · ${ago(it.d)}</span></div></a>`).join('')
+    :`<div class="empty">${vbusy?'Загружаю видео…':'Видео пока нет. Нажми «Обновить» (нужен интернет).'}</div>`;
+  renderVC();
+}
+function renderVC(){
+  const M=store.get('k2channels',[]);
+  $('vc-list').innerHTML=M.length?`<div class="lbl">Добавленные</div>`+M.map((c,i)=>`<div class="chline"><span>${esc(c.n)} <small style="color:var(--muted)">· ${c.f==='fun'?'модели':'проблемы'}</small></span><button class="del" data-vdel="${i}" aria-label="Удалить">×</button></div>`).join(''):'';
+}
+async function resolveChannel(raw){
+  raw=raw.trim();
+  let m=raw.match(/(UC[\w-]{22})/);if(m)return m[1];
+  let url='';
+  const yt=raw.match(/^(?:https?:\/\/)?(?:www\.|m\.)?youtube\.com\/(@[\w.\-]+|c\/[\w.\-]+|user\/[\w.\-]+)/i);
+  if(/^@[\w.\-]+$/.test(raw))url='https://www.youtube.com/'+raw;
+  else if(yt)url='https://www.youtube.com/'+yt[1];
+  else if(/^[\w.\-]{3,}$/.test(raw))url='https://www.youtube.com/@'+raw;
+  if(!url)throw new Error('Не похоже на ссылку на канал YouTube');
+  const html=await fetchText(url.replace(/^http:/,'https:'));
+  m=html.match(/<link rel="canonical" href="https:\/\/www\.youtube\.com\/channel\/(UC[\w-]{22})"/)||html.match(/"externalId":"(UC[\w-]{22})"/)||html.match(/"channelId":"(UC[\w-]{22})"/);
+  if(!m)throw new Error('Канал не найден');
+  return m[1];
+}
+$('vc-add').onclick=async()=>{
+  const raw=$('vc-in').value,msg=$('vc-msg');if(!raw.trim())return;
+  msg.textContent='Ищу канал…';$('vc-add').disabled=true;
+  try{
+    const id=await resolveChannel(raw);
+    if(allChannels().some(c=>c.id===id))throw new Error('Этот канал уже есть в ленте');
+    const xml=await fetchText('https://www.youtube.com/feeds/videos.xml?channel_id='+id);
+    const d=new DOMParser().parseFromString(xml,'application/xml');
+    const n=((d.getElementsByTagName('title')[0]||{}).textContent||id).trim();
+    const items=parseRSS(xml);
+    const ru=/[а-яё]/i.test(n+' '+items.map(x=>x.t).join(' '));
+    const M=store.get('k2channels',[]);M.push({id,n,f:$('vc-feed').value,l:ru?'ru':'en'});store.set('k2channels',M);
+    const cache=store.get('k2vcache',{});cache[id]={at:Date.now(),items};store.set('k2vcache',cache);
+    msg.textContent='✓ Добавлен: '+n;$('vc-in').value='';
+    if($('vc-feed').value!==vfeed){vfeed=$('vc-feed').value;[...$('vseg').children].forEach(x=>x.classList.toggle('on',x.dataset.v===vfeed))}
+    vlang='all';vch=id;renderV();
+  }catch(e){msg.textContent='⚠️ '+(e.name==='AbortError'?'Нет ответа — проверь интернет':e.message==='Failed to fetch'?'Нет связи с YouTube':e.message)}
+  finally{$('vc-add').disabled=false}
+};
+$('vc-list').onclick=e=>{const d=e.target.closest('[data-vdel]');if(!d||!twoTapDelete(d))return;
+  const M=store.get('k2channels',[]);M.splice(+d.dataset.vdel,1);store.set('k2channels',M);renderV()};
+$('vseg').onclick=e=>{const b=e.target.closest('button');if(!b)return;vfeed=b.dataset.v;vch='all';
+  [...$('vseg').children].forEach(x=>x.classList.toggle('on',x===b));renderV();loadFeeds(false)};
+$('vlang').onclick=e=>{const b=e.target.closest('.chip');if(!b)return;vlang=b.dataset.v;renderV();loadFeeds(false)};
+$('vchans').onclick=e=>{const b=e.target.closest('.chip');if(!b)return;vch=b.dataset.v;renderV()};
+$('vrefresh').onclick=()=>loadFeeds(true);
+let vStarted=false;
+
 /* ================= УХОД ================= */
 // Порядок пунктов не менять: отметки хранятся по номеру пункта (ключ k2care)
 const M=[
@@ -225,6 +337,7 @@ document.addEventListener('click',e=>{const h=e.target.closest('.card-h');if(h)h
 function go(id){
   document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x.dataset.s===id));
   document.querySelectorAll('main>section').forEach(s=>s.classList.toggle('active',s.id===id));window.scrollTo(0,0);
+  if(id==='s-video'&&!vStarted){vStarted=true;renderV();loadFeeds(false)}
 }
 $('nav').onclick=e=>{const b=e.target.closest('button');if(b)go(b.dataset.s)};
 renderPChips();renderP();renderPr();renderMat();renderBrands();renderG();renderM();renderN();

@@ -5,5 +5,10 @@
   "android": {
     "backgroundColor": "#0E1116",
     "adjustMarginsForEdgeToEdge": "force"
+  },
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    }
   }
 }

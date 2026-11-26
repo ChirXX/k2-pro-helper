@@ -72,6 +72,29 @@
     <div id="glist"></div>
   </section>
 
+  <!-- ВИДЕО -->
+  <section id="s-video">
+    <h2>Видео</h2>
+    <div class="seg" id="vseg"><button data-v="fun" class="on">Модели и идеи</button><button data-v="fix">Решение проблем</button></div>
+    <div class="chips alt" id="vlang"></div>
+    <div class="chips" id="vchans"></div>
+    <div class="vbar"><span id="vstatus" class="vstatus"></span><button class="reset" id="vrefresh">↻ Обновить</button></div>
+    <div id="vlist"></div>
+    <div class="card" style="margin-top:14px">
+      <div class="card-h"><div class="ico">➕</div><div class="t"><b>Мои каналы</b><span>добавь любимый канал YouTube</span></div><div class="chev">▸</div></div>
+      <div class="card-b">
+        <label class="fl">Ссылка, @имя или ID канала</label>
+        <input class="f" id="vc-in" placeholder="https://www.youtube.com/@CNCKitchen" autocomplete="off">
+        <label class="fl">В какую ленту</label>
+        <select class="f" id="vc-feed"><option value="fun">Модели и идеи</option><option value="fix">Решение проблем</option></select>
+        <div class="row"><button class="btn2 acc" id="vc-add">Добавить канал</button></div>
+        <div id="vc-msg" class="sub" style="margin:10px 2px 0"></div>
+        <div id="vc-list"></div>
+      </div>
+    </div>
+    <p class="sub" style="margin-top:12px">Ролики открываются в приложении YouTube или в браузере. Лента обновляется при наличии интернета, последние загруженные видео сохраняются на телефоне.</p>
+  </section>
+
   <!-- МОЁ -->
   <section id="s-my">
     <div class="seg" id="myseg"><button data-v="care" class="on">Уход</button><button data-v="notes">Заметки</button></div>
@@ -97,6 +120,7 @@
   <button data-s="s-printers"><span class="ni">🖨️</span>Принтеры</button>
   <button data-s="s-materials"><span class="ni">🧵</span>Материалы</button>
   <button data-s="s-guide"><span class="ni">📚</span>Справочник</button>
+  <button data-s="s-video"><span class="ni">🎬</span>Видео</button>
   <button data-s="s-my"><span class="ni">📝</span>Моё</button>
 </nav>
 
@@ -104,6 +128,7 @@
 <script src="js/printers.js"></script>
 <script src="js/materials.js"></script>
 <script src="js/guide.js"></script>
+<script src="js/videos.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>
