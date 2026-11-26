@@ -29,14 +29,32 @@ jobs:
           npm ci || npm install
           npx cap sync android
 
-      - name: Собрать APK
+      - name: Достать ключ подписи из секретов
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$KS_B64" ]; then echo "::error::Нет секрета ANDROID_KEYSTORE_BASE64"; exit 1; fi
+          echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/k2-release.p12"
+
+      - name: Собрать APK (release, подписанный)
         working-directory: android
+        env:
+          K2_KEYSTORE_PATH: ${{ runner.temp }}/k2-release.p12
+          K2_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          BUILD_NUMBER: ${{ github.run_number }}
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew assembleRelease --no-daemon
 
-      - name: Переименовать
-        run: cp android/app/build/outputs/apk/debug/app-debug.apk K2-Pro-Pomoshnik.apk
+      - name: Проверить подпись
+        run: |
+          APK=android/app/build/outputs/apk/release/app-release.apk
+          SIGNER=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)/apksigner
+          "$SIGNER" verify --print-certs "$APK" | tee signer.txt
+          # Отпечаток постоянного ключа. Если не совпал — обновление не встанет поверх, релиз не публикуем.
+          grep -qi "SHA-256 digest: 8737f16f40956d7c96d8bc20ea7b05b69b81b74a52c70640a8dec390492d651b" signer.txt
+          cp "$APK" K2-Pro-Pomoshnik.apk
+          rm -f "$RUNNER_TEMP/k2-release.p12"
 
       - uses: actions/upload-artifact@v4
         with:

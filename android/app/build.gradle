@@ -7,8 +7,10 @@ android {
         applicationId "ee.home.k2prohelper"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        // Номер сборки из GitHub Actions — каждая новая версия больше предыдущей
+        def buildNum = (System.getenv("BUILD_NUMBER") ?: "1") as Integer
+        versionCode buildNum
+        versionName "1.0.${buildNum}"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,8 +18,27 @@ android {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // Постоянный ключ подписи: файл и пароль приходят из секретов GitHub.
+    // Без них release-сборка остаётся неподписанной (локально это нормально).
+    def ksPath = System.getenv("K2_KEYSTORE_PATH")
+    def ksPass = System.getenv("K2_KEYSTORE_PASSWORD")
+    def hasKey = ksPath && ksPass && file(ksPath).exists()
+    signingConfigs {
+        if (hasKey) {
+            release {
+                storeFile file(ksPath)
+                storeType "pkcs12"
+                storePassword ksPass
+                keyAlias "k2helper"
+                keyPassword ksPass
+            }
+        }
+    }
     buildTypes {
         release {
+            if (hasKey) {
+                signingConfig signingConfigs.release
+            }
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
