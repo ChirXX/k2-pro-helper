@@ -1,0 +1,28 @@
+name: Графика для Google Play
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['store/*.html', 'store/shots.mjs', '.github/workflows/store-graphics.yml']
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Шрифты как на Android (Roboto + цветные эмодзи)
+        run: sudo apt-get update -q && sudo apt-get install -y -q fonts-roboto fonts-noto-color-emoji fonts-noto-core
+      - name: Playwright
+        run: |
+          npm i --no-save playwright@1
+          npx playwright install --with-deps chromium
+      - name: Отрендерить
+        run: node store/shots.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: play-graphics
+          path: store/out/*.png

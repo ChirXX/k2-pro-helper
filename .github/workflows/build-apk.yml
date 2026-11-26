@@ -1,8 +1,9 @@
-name: Собрать APK
+name: Собрать APK и AAB
 
 on:
   push:
     branches: [main]
+    paths-ignore: ['docs/**', 'store/**', '*.md']
   workflow_dispatch:
 
 jobs:
@@ -36,7 +37,7 @@ jobs:
           if [ -z "$KS_B64" ]; then echo "::error::Нет секрета ANDROID_KEYSTORE_BASE64"; exit 1; fi
           echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/k2-release.p12"
 
-      - name: Собрать APK (release, подписанный)
+      - name: Собрать APK и AAB (release, подписанные)
         working-directory: android
         env:
           K2_KEYSTORE_PATH: ${{ runner.temp }}/k2-release.p12
@@ -44,7 +45,7 @@ jobs:
           BUILD_NUMBER: ${{ github.run_number }}
         run: |
           chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon
+          ./gradlew assembleRelease bundleRelease --no-daemon
 
       - name: Проверить подпись
         run: |
@@ -54,19 +55,28 @@ jobs:
           # Отпечаток постоянного ключа. Если не совпал — обновление не встанет поверх, релиз не публикуем.
           grep -qi "SHA-256 digest: 8737f16f40956d7c96d8bc20ea7b05b69b81b74a52c70640a8dec390492d651b" signer.txt
           cp "$APK" 3D-Pomoshnik.apk
+          # AAB для Google Play — тот же ключ (в Play он станет ключом загрузки)
+          AAB=android/app/build/outputs/bundle/release/app-release.aab
+          keytool -printcert -jarfile "$AAB" | tee aab.txt
+          tr -d ':' < aab.txt | grep -qi "SHA256 8737f16f40956d7c96d8bc20ea7b05b69b81b74a52c70640a8dec390492d651b"
+          cp "$AAB" 3D-Pomoshnik.aab
           rm -f "$RUNNER_TEMP/k2-release.p12"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: 3D-Pomoshnik-apk
-          path: 3D-Pomoshnik.apk
+          name: 3D-Pomoshnik
+          path: |
+            3D-Pomoshnik.apk
+            3D-Pomoshnik.aab
 
       - name: Опубликовать как релиз
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v1.0.${{ github.run_number }}
           name: 3D Помощник v1.0.${{ github.run_number }}
-          files: 3D-Pomoshnik.apk
+          files: |
+            3D-Pomoshnik.apk
+            3D-Pomoshnik.aab
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
