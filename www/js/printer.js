@@ -3,7 +3,8 @@
      без пароля. Принтер шлёт полный кадр при подключении, дальше только изменения.
      Описание протокола: github.com/3dg1luk43/ha_creality_ws (docs/internal/reference).
    Klipper (Moonraker): HTTP http://IP:7125/printer/objects/query — Voron, Qidi, Sovol и др.
-   Управляющие команды сюда пока НЕ отправляются. */
+   Управление (если включено в настройках принтера): пауза, продолжение, стоп, подсветка, температуры, скорость.
+   Опасные действия — только после подтверждения. */
 const PR_TYPES=[['creality','Creality K1 / K2 / Hi / Ender-3 V3'],['moonraker','Klipper (Moonraker): Voron, Qidi, Sovol…']];
 const PS={gen:0,form:null,idx:0,ws:null,timer:null,hb:null,data:{},type:'',at:0,status:'off',err:'',cam:false,camPc:null,triedNoProto:false,lastState:'',startedFor:-1};
 const prList=()=>store.get('k2printers',[]);
@@ -30,18 +31,22 @@ function crealityView(d){
     noz:num(d.nozzleTemp),nozT:num(d.targetNozzleTemp),bed:num(d.bedTemp0),bedT:num(d.targetBedTemp0),
     box:num(d.boxTemp),boxT:num(d.targetBoxTemp),fan:num(d.modelFanPct),speed:num(d.curFeedratePct),
     light:d.lightSw==null?null:+d.lightSw===1,err,model:d.model||'',host:d.hostname||'',
+    maxNoz:num(d.maxNozzleTemp)||300,maxBed:num(d.maxBedTemp)||100,maxBox:num(d.maxBoxTemp)||60,boxCtl:'targetBoxTemp' in d&&'maxBoxTemp' in d,
     cam:+d.webrtcSupport===1||/^(F008|F012|F021)$/.test(String(d.model||''))||/k2/i.test(String(d.model||''))?'webrtc':'mjpeg'};
 }
 function moonView(r){
   const ps=r.print_stats||{},ds=r.display_status||{},vs=r.virtual_sdcard||{},ex=r.extruder||{},hb=r.heater_bed||{};
-  const ch=Object.keys(r).filter(k=>/chamber/i.test(k)).map(k=>r[k])[0]||{};
+  const chKey=Object.keys(r).filter(k=>/chamber/i.test(k))[0],ch=chKey?r[chKey]:{};
+  PS.moonChamber=chKey&&/^heater_generic /.test(chKey)?chKey.slice(15):'';
   const p=num(ds.progress)!=null&&ds.progress>0?ds.progress:num(vs.progress)||0;
   const map={printing:'printing',paused:'paused',complete:'done',cancelled:'stopped',error:'error',standby:'idle'};
   const el=num(ps.print_duration);
   return {s:map[ps.state]||'idle',file:(ps.filename||'').split('/').pop(),prog:Math.round(p*1000)/10,
     layer:num((ps.info||{}).current_layer),total:num((ps.info||{}).total_layer),elapsed:el,
     left:p>0.02&&el?el/p-el:null,noz:num(ex.temperature),nozT:num(ex.target),bed:num(hb.temperature),bedT:num(hb.target),
-    box:num(ch.temperature),boxT:num(ch.target),fan:r.fan?Math.round((+r.fan.speed||0)*100):null,speed:null,light:null,
+    box:num(ch.temperature),boxT:num(ch.target),fan:r.fan?Math.round((+r.fan.speed||0)*100):null,
+    speed:r.gcode_move&&num(r.gcode_move.speed_factor)!=null?r.gcode_move.speed_factor*100:null,light:null,
+    maxNoz:300,maxBed:120,maxBox:70,boxCtl:!!PS.moonChamber,
     err:ps.state==='error'?1:0,errMsg:ps.message||'',model:'Klipper',host:'',cam:'moon'};
 }
 const ST_TXT={printing:['🟢','Печатает'],preparing:['🟡','Готовится к печати'],paused:['⏸️','Пауза'],done:['✅','Печать завершена'],
@@ -91,7 +96,7 @@ async function moonStart(P){
     if(g!==PS.gen)return;
     try{
       if(!moonObjs){const L=JSON.parse(await fetchText(base+'/printer/objects/list')).result.objects;
-        moonObjs=['print_stats','display_status','virtual_sdcard','extruder','heater_bed','fan',...L.filter(o=>/chamber/i.test(o))].filter(o=>L.includes(o))}
+        moonObjs=['print_stats','display_status','virtual_sdcard','extruder','heater_bed','fan','gcode_move',...L.filter(o=>/chamber/i.test(o))].filter(o=>L.includes(o))}
       const r=JSON.parse(await fetchText(base+'/printer/objects/query?'+moonObjs.map(encodeURIComponent).join('&')));
       if(g!==PS.gen)return;PS.at=Date.now();PS.status='on';onTelemetry(moonView(r.result.status));
     }catch(e){if(g!==PS.gen)return;moonObjs=null;PS.status=PS.at?'lost':'fail';PS.err=PS.at?'Связь с принтером потеряна':'Moonraker не отвечает на порту 7125';renderPrinter()}
@@ -151,11 +156,12 @@ async function camWebRTC(P,box){
 
 /* ---------- отрисовка ---------- */
 function prForm(i){
-  const P=i>=0?prList()[i]:{n:'',host:'',type:'creality'};
+  const P=i>=0?prList()[i]:{n:'',host:'',type:'creality',ctl:true};
   return `<div class="card open" id="pr-form"><div class="card-b" style="display:block;border:none;padding-top:6px">
     <label class="fl">Название</label><input class="f" id="pf-n" placeholder="Например, «K2 Pro в гараже»" value="${esc(P.n)}">
     <label class="fl">IP-адрес принтера</label><input class="f" id="pf-h" inputmode="url" autocomplete="off" placeholder="192.168.1.50" value="${esc(P.host)}">
     <label class="fl">Тип</label><select class="f" id="pf-t">${PR_TYPES.map(([v,l])=>`<option value="${v}" ${v===P.type?'selected':''}>${l}</option>`).join('')}</select>
+    <label class="ck"><input type="checkbox" id="pf-c" ${P.ctl!==false?'checked':''}> Разрешить управление: пауза, стоп, температуры, скорость, подсветка</label>
     <div class="tip">💡 IP-адрес показан на экране принтера в настройках сети (Wi-Fi / LAN). Телефон должен быть в той же Wi-Fi сети. Лучше закрепить за принтером постоянный адрес в роутере.</div>
     <div class="row">${prList().length?'<button class="btn2" id="pf-cancel">Передумал</button>':''}<button class="btn2 acc" id="pf-save" data-i="${i}">Подключить</button></div>
   </div></div>`;
@@ -186,13 +192,14 @@ function renderPrinter(){
           ${v.left>0&&v.s!=='done'?`<div><span>Осталось</span>≈ ${tfmt(v.left)}${eta?` · закончит к ${eta}`:''}</div>`:''}
         </div>`:''}
       <div class="stats pr-temps">${tile('Сопло',v.noz,v.nozT)}${tile('Стол',v.bed,v.bedT)}${v.box!=null?tile('Камера',v.box,v.boxT):`<div class="stat"><small>Обдув</small><b>${v.fan!=null?Math.round(v.fan)+' %':'—'}</b></div>`}</div>
+      ${P.ctl!==false?ctlHTML(P,v,job):''}
       <div class="pr-foot">${v.light!=null?`<span>💡 Подсветка ${v.light?'вкл.':'выкл.'}</span>`:''}${v.speed!=null&&job?`<span>⚡ Скорость ${Math.round(v.speed)} %</span>`:''}${v.model?`<span>${esc(v.host||v.model)}</span>`:''}</div>
     </div>
     <button class="btn2 more" id="pr-camb">${PS.cam?'Скрыть камеру':'📷 Показать камеру'}</button><div id="pr-cam" class="pr-cam" ${PS.cam?'':'hidden'}></div>`;
   }else main=`<div class="pr-st"><span class="vstatus busy">Жду данные от принтера…</span></div>`;
   const keepCam=PS.cam&&$('pr-cam')&&$('pr-cam').firstChild?$('pr-cam'):null;
   box.innerHTML=chipsH+main+`<div class="row"><button class="btn2" id="pr-edit">⚙️ Изменить</button><button class="btn2 del" id="pr-del" style="font-size:14px">Удалить</button></div>
-    <p class="sub" style="margin-top:12px">Только наблюдение: приложение ничего не отправляет на принтер, кроме запросов состояния. Работает в той же Wi-Fi сети.</p>`;
+    <p class="sub" style="margin-top:12px">${P.ctl!==false?'Управление работает в той же Wi-Fi сети. Остановка печати и смена температур во время печати просят подтверждение.':'Только наблюдение: команды на принтер не отправляются. Включить управление — в «⚙️ Изменить».'}</p>`;
   // не пересоздаём видео при каждом обновлении цифр
   if(keepCam&&$('pr-cam')){$('pr-cam').replaceWith(keepCam)}else if(PS.cam&&v&&$('pr-cam')&&!PS.camPc)camStart();
 }
@@ -204,15 +211,16 @@ $('my-printer').addEventListener('click',e=>{
   if(t.closest('#pr-edit')){PS.form=PS.idx;prDisconnect();renderPrinter();return}
   if(t.closest('#pf-cancel')){PS.form=null;prConnect();return}
   if(t.closest('#pr-retry')){prConnect();return}
+  const pc=t.closest('[data-pc]');if(pc){onCtl(pc.dataset.pc);return}
   if(t.closest('#pr-camb')){PS.cam=!PS.cam;if(!PS.cam)camStop();renderPrinter();return}
   const c=t.closest('[data-pi]');if(c){PS.idx=+c.dataset.pi;store.set('k2printerIdx',PS.idx);PS.cam=false;prConnect();return}
   if(t.closest('#pr-del')){const L=prList(),i=PS.idx,[gone]=L.splice(i,1);store.set('k2printers',L);PS.idx=0;prDisconnect();PS.status='off';
     if(L.length)prConnect();else renderPrinter();buzz(15);
     toast(`«${gone.n||gone.host}» удалён`,()=>{const L2=prList();L2.splice(i,0,gone);store.set('k2printers',L2);PS.idx=i;prConnect()});return}
   const sv=t.closest('#pf-save');if(sv){
-    const n=$('pf-n').value.trim(),host=$('pf-h').value.trim().replace(/^[a-z]+:\/\//i,'').replace(/[:/].*$/,''),type=$('pf-t').value;
+    const ctl=$('pf-c').checked,n=$('pf-n').value.trim(),host=$('pf-h').value.trim().replace(/^[a-z]+:\/\//i,'').replace(/[:/].*$/,''),type=$('pf-t').value;
     if(!validHost(host)){shake($('pf-h'));toast('Похоже, адрес с опечаткой. Пример: 192.168.1.50');return}
-    const L=prList(),i=+sv.dataset.i,P={n,host,type};
+    const L=prList(),i=+sv.dataset.i,P={n,host,type,ctl};
     if(i>=0)L[i]=P;else L.push(P);store.set('k2printers',L);PS.idx=i>=0?i:L.length-1;store.set('k2printerIdx',PS.idx);
     PS.form=null;PS.cam=false;buzz(10);prConnect();
   }
@@ -220,3 +228,90 @@ $('my-printer').addEventListener('click',e=>{
 document.addEventListener('visibilitychange',()=>{if(document.hidden)prDisconnect();else if(prVisible()&&PS.form==null)prConnect()});
 function prShow(){PS.idx=Math.min(store.get('k2printerIdx',0),Math.max(0,prList().length-1));if(PS.form==null)prConnect();else renderPrinter()}
 function prHide(){prDisconnect();PS.status='off'}
+
+/* ---------- управление ---------- */
+function ctlHTML(P,v,job){
+  const b=(k,l,c='')=>`<button class="btn2 ${c}" data-pc="${k}">${l}</button>`;
+  const active=['printing','preparing','paused'].includes(v.s)&&v.file;
+  return `<div class="pr-ctl">
+    ${active&&v.s!=='paused'?b('pause','⏸ Пауза'):''}${v.s==='paused'?b('resume','▶ Продолжить','acc'):''}${active?b('stop','⏹ Стоп','danger'):''}
+    ${v.light!=null?b('light',v.light?'💡 Свет выкл.':'💡 Свет вкл.'):''}
+    ${b('temps','🌡 Температуры')}${v.speed!=null||P.type==='moonraker'?b('speed','⚡ Скорость'+(v.speed!=null?' '+Math.round(v.speed)+' %':'')):''}
+  </div>`;
+}
+function sheet(html){
+  closeSheet(true);const o=document.createElement('div');o.id='sheet';
+  o.innerHTML=`<div class="sh-bg"></div><div class="sh" role="dialog">${html}</div>`;document.body.appendChild(o);
+  requestAnimationFrame(()=>o.classList.add('show'));return o;
+}
+function closeSheet(now){const o=$('sheet');if(!o)return;o.id='';o.classList.remove('show');if(now)o.remove();else setTimeout(()=>o.remove(),250)}
+function ask(title,text,ok,danger){
+  return new Promise(res=>{
+    const o=sheet(`<b class="sh-t">${title}</b><p class="sh-p">${text}</p><div class="row"><button class="btn2" data-a="0">Отмена</button><button class="btn2 ${danger?'danger':'acc'}" data-a="1">${ok}</button></div>`);
+    o.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(b||e.target.classList.contains('sh-bg')){closeSheet();res(!!b&&b.dataset.a==='1')}});
+  });
+}
+async function prCmd(kind,val){
+  const P=prList()[PS.idx];if(!P)throw new Error('Принтер не выбран');
+  if(P.type==='creality'){
+    const map={pause:{pause:1},resume:{pause:0},stop:{stop:1},light:{lightSw:val?1:0},noz:{nozzleTempControl:val},
+      bed:{bedTempControl:{num:0,val}},box:{boxTempControl:val},speed:{setFeedratePct:val}};
+    if(!PS.ws||PS.ws.readyState!==1)throw new Error('Нет связи с принтером');
+    PS.ws.send(JSON.stringify({method:'set',params:map[kind]}));
+    setTimeout(()=>{try{PS.ws&&PS.ws.readyState===1&&PS.ws.send(JSON.stringify({method:'get',params:{ReqPrinterPara:1}}))}catch(e){}},700);
+    return;
+  }
+  const base=`http://${P.host}:7125`,post=u=>fetchText(base+u,{method:'POST'});
+  const g=c=>post('/printer/gcode/script?script='+encodeURIComponent(c));
+  if(kind==='pause')await post('/printer/print/pause');
+  else if(kind==='resume')await post('/printer/print/resume');
+  else if(kind==='stop')await post('/printer/print/cancel');
+  else if(kind==='noz')await g(`SET_HEATER_TEMPERATURE HEATER=extruder TARGET=${val}`);
+  else if(kind==='bed')await g(`SET_HEATER_TEMPERATURE HEATER=heater_bed TARGET=${val}`);
+  else if(kind==='box'&&PS.moonChamber)await g(`SET_HEATER_TEMPERATURE HEATER=${PS.moonChamber} TARGET=${val}`);
+  else if(kind==='speed')await g(`M220 S${val}`);
+}
+async function run(kind,val,okMsg){
+  try{await prCmd(kind,val);buzz(12);toast(okMsg)}
+  catch(e){toast('Не получилось: '+(e.name==='AbortError'||/fetch/i.test(e.message)?'принтер не ответил':e.message))}
+}
+const TPRESET=[['PLA',210,60],['PETG',240,75],['ABS / ASA',250,100],['Остудить',0,0]];
+async function onCtl(k){
+  const v=lastView;if(!v)return;const printing=['printing','preparing'].includes(v.s);
+  if(k==='pause'){if(await ask('Поставить на паузу?','Сопло отъедет от модели, печать можно будет продолжить.','Пауза'))run('pause',0,'Ставлю на паузу ⏸');return}
+  if(k==='resume'){run('resume',0,'Продолжаю печать ▶');return}
+  if(k==='stop'){if(await ask('Остановить печать?','Печать «'+esc(v.file)+'» будет прервана. Продолжить её потом не получится.','Остановить',true))run('stop',0,'Останавливаю печать ⏹');return}
+  if(k==='light'){run('light',!v.light,v.light?'Выключаю подсветку':'Включаю подсветку 💡');return}
+  if(k==='temps'){
+    const row=(id,l,cur,max)=>`<label class="fl">${l} <span class="sh-cur">задано ${deg(cur)}, макс. ${max}°</span></label><input class="f" type="number" inputmode="numeric" min="0" max="${max}" id="${id}" value="${cur!=null?Math.round(cur):0}">`;
+    const o=sheet(`<b class="sh-t">🌡 Температуры</b>
+      <div class="chips" style="padding-top:8px">${TPRESET.map(([n,a,b])=>`<button class="chip" data-tp="${a},${b}">${n}${a?` ${a}/${b}°`:''}</button>`).join('')}</div>
+      ${row('t-noz','Сопло',v.nozT,v.maxNoz)}${row('t-bed','Стол',v.bedT,v.maxBed)}${v.boxCtl?row('t-box','Камера (подогрев)',v.boxT,v.maxBox):''}
+      <p class="sh-p" style="font-size:13px">Заданные значения уже стоят в полях. 0 — выключить нагрев. Температуры для своего пластика смотри на катушке и во вкладке «Материалы».</p>
+      <div class="row"><button class="btn2" data-x="0">Отмена</button><button class="btn2 acc" data-x="1">Установить</button></div>`);
+    o.addEventListener('click',async e=>{
+      const tp=e.target.closest('[data-tp]');if(tp){const [a,b]=tp.dataset.tp.split(',');$('t-noz').value=a;$('t-bed').value=b;return}
+      const x=e.target.closest('[data-x]');if(!x&&!e.target.classList.contains('sh-bg'))return;
+      if(!x||x.dataset.x==='0'){closeSheet();return}
+      const want=[['noz','t-noz',v.nozT,v.maxNoz,'сопло'],['bed','t-bed',v.bedT,v.maxBed,'стол'],['box','t-box',v.boxT,v.maxBox,'камера']].filter(a=>$(a[1]));
+      const ch=[];for(const [kind,id,cur,max,nm] of want){const n=Math.round(+$(id).value);
+        if(!isFinite(n)||n<0||n>max){shake($(id));toast(`Для «${nm}» можно от 0 до ${max}°`);return}
+        if(n!==Math.round(cur||0))ch.push([kind,n,nm])}
+      closeSheet();if(!ch.length){toast('Ничего не изменилось');return}
+      if(printing&&!await ask('Идёт печать','Резкая смена температуры может испортить модель: '+ch.map(c=>c[2]+' → '+c[1]+'°').join(', ')+'. Точно меняем?','Изменить',true))return;
+      for(const [kind,n] of ch)await prCmd(kind,n).catch(e=>toast('Не получилось: '+e.message));
+      buzz(12);toast('Температуры отправлены 🌡');
+    });return}
+  if(k==='speed'){
+    const cur=Math.round(v.speed||100);
+    const o=sheet(`<b class="sh-t">⚡ Скорость печати</b><div class="sp-val"><span id="sp-n">${cur}</span> %</div>
+      <input type="range" id="sp-r" min="30" max="200" step="5" value="${cur}">
+      <div class="chips" style="padding-top:10px">${[[50,'🐢 50 %'],[75,'75 %'],[100,'100 % — как в слайсере'],[125,'125 %'],[150,'🐇 150 %']].map(([n,l])=>`<button class="chip" data-sp="${n}">${l}</button>`).join('')}</div>
+      <p class="sh-p" style="font-size:13px">Меняет скорость текущей печати. Быстрее — выше риск недоэкструзии и хуже поверхность; медленнее помогает на сложных участках.</p>
+      <div class="row"><button class="btn2" data-x="0">Отмена</button><button class="btn2 acc" data-x="1">Применить</button></div>`);
+    o.addEventListener('input',()=>{$('sp-n').textContent=$('sp-r').value});
+    o.addEventListener('click',e=>{const c=e.target.closest('[data-sp]');if(c){$('sp-r').value=c.dataset.sp;$('sp-n').textContent=c.dataset.sp;return}
+      const x=e.target.closest('[data-x]');if(!x&&!e.target.classList.contains('sh-bg'))return;
+      const n=+$('sp-r').value;closeSheet();if(x&&x.dataset.x==='1'&&n!==cur)run('speed',n,`Скорость ${n} % ⚡`)});
+  }
+}
