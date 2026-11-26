@@ -73,28 +73,44 @@
     <div id="glist"></div>
   </section>
 
-  <!-- ВИДЕО -->
+  <!-- ИДЕИ: модели и видео -->
   <section id="s-video">
-    <h2>Видео</h2>
-    <p class="sub">Идеи для печати и разборы поломок от тех, кто уже набил шишки.</p>
-    <div class="seg" id="vseg"><button data-v="fun" class="on">Модели и идеи</button><button data-v="fix">Решение проблем</button></div>
-    <div class="chips alt" id="vlang"></div>
-    <div class="chips" id="vchans"></div>
-    <div class="vbar"><span id="vstatus" class="vstatus"></span><button class="reset" id="vrefresh">↻ Обновить</button></div>
-    <div id="vlist"></div>
-    <div class="card" style="margin-top:14px">
-      <div class="card-h"><div class="ico">➕</div><div class="t"><b>Мои каналы</b><span>добавь любимого автора с YouTube</span></div><div class="chev">▸</div></div>
-      <div class="card-b">
-        <label class="fl">Ссылка, @имя или ID канала</label>
-        <input class="f" id="vc-in" placeholder="https://www.youtube.com/@CNCKitchen" autocomplete="off">
-        <label class="fl">В какую ленту</label>
-        <select class="f" id="vc-feed"><option value="fun">Модели и идеи</option><option value="fix">Решение проблем</option></select>
-        <div class="row"><button class="btn2 acc" id="vc-add">Добавить канал</button></div>
-        <div id="vc-msg" class="sub" style="margin:10px 2px 0"></div>
-        <div id="vc-list"></div>
-      </div>
+    <h2>Идеи</h2>
+    <div class="seg" id="iseg"><button data-v="models" class="on">🧩 Модели</button><button data-v="video">🎬 Видео</button></div>
+
+    <div id="i-models">
+      <p class="sub">Что бы напечатать? Популярные и новые модели с MakerWorld и Printables.</p>
+      <form id="mform" autocomplete="off"><input class="search" id="mq" type="search" enterkeyhint="search" placeholder="Органайзер, крючок, ваза, игрушка…"></form>
+      <div class="chips" id="msrc"></div>
+      <div class="chips alt" id="mideas"></div>
+      <div class="vbar"><span id="mstatus" class="vstatus"></span></div>
+      <div id="modlist"></div>
+      <button class="btn2 more" id="mmore" hidden>Показать ещё</button>
+      <div id="mother"></div>
+      <p class="sub" style="margin-top:12px">Нажми на модель — откроется её страница на сайте, там же кнопка скачивания (некоторые сайты просят войти в бесплатный аккаунт). ☆ — сохранить модель себе.</p>
     </div>
-    <p class="sub" style="margin-top:12px">Ролики открываются в приложении YouTube. Без интернета покажу то, что уже успел загрузить.</p>
+
+    <div id="i-video" hidden>
+      <p class="sub">Идеи для печати и разборы поломок от тех, кто уже набил шишки.</p>
+      <div class="seg" id="vseg"><button data-v="fun" class="on">Модели и идеи</button><button data-v="fix">Решение проблем</button></div>
+      <div class="chips alt" id="vlang"></div>
+      <div class="chips" id="vchans"></div>
+      <div class="vbar"><span id="vstatus" class="vstatus"></span><span><button class="reset" id="vmanage">⚙️ Каналы</button> <button class="reset" id="vrefresh">↻ Обновить</button></span></div>
+      <div id="vlist"></div>
+      <div class="card" id="vc-card" style="margin-top:14px">
+        <div class="card-h"><div class="ico">⚙️</div><div class="t"><b>Каналы</b><span>добавить свой, убрать лишний</span></div><div class="chev">▸</div></div>
+        <div class="card-b">
+          <label class="fl">Добавить канал: ссылка, @имя или ID</label>
+          <input class="f" id="vc-in" placeholder="https://www.youtube.com/@CNCKitchen" autocomplete="off">
+          <label class="fl">В какую ленту</label>
+          <select class="f" id="vc-feed"><option value="fun">Модели и идеи</option><option value="fix">Решение проблем</option></select>
+          <div class="row"><button class="btn2 acc" id="vc-add">Добавить канал</button></div>
+          <div id="vc-msg" class="sub" style="margin:10px 2px 0"></div>
+          <div id="vc-list"></div>
+        </div>
+      </div>
+      <p class="sub" style="margin-top:12px">Ролики открываются в приложении YouTube. Без интернета покажу то, что уже успел загрузить.</p>
+    </div>
   </section>
 
   <!-- МОЁ -->
@@ -122,7 +138,7 @@
   <button data-s="s-printers"><span class="ni">🖨️</span>Принтеры</button>
   <button data-s="s-materials"><span class="ni">🧵</span>Материалы</button>
   <button data-s="s-guide"><span class="ni">📚</span>Справочник</button>
-  <button data-s="s-video"><span class="ni">🎬</span>Видео</button>
+  <button data-s="s-video"><span class="ni">🧩</span>Идеи</button>
   <button data-s="s-my"><span class="ni">📝</span>Моё</button>
 </nav>
 <div id="toast" role="status" aria-live="polite"><span></span><button hidden></button></div>
@@ -133,5 +149,6 @@
 <script src="js/guide.js"></script>
 <script src="js/videos.js"></script>
 <script src="js/app.js"></script>
+<script src="js/models.js"></script>
 </body>
 </html>

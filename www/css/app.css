@@ -206,3 +206,30 @@ nav button.on .ni{filter:none;opacity:1;animation:hop .45s var(--spring)}
 @keyframes hop{0%{transform:translateY(0) scale(1)}40%{transform:translateY(-4px) scale(1.15)}100%{transform:none}}
 
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+
+/* ---------- модели ---------- */
+.mgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mod{display:flex;flex-direction:column;background:var(--surface);border:1px solid rgba(255,255,255,.06);border-radius:18px;overflow:hidden;box-shadow:var(--shadow);animation:rise .35s ease both;min-width:0}
+.mimg{position:relative;display:block;aspect-ratio:4/3;background:linear-gradient(110deg,var(--surface2) 30%,#353040 50%,var(--surface2) 70%);background-size:200% 100%;animation:shimmer 1.4s linear infinite}
+.mimg img{width:100%;height:100%;object-fit:cover;display:block}
+.msrc{position:absolute;left:7px;top:7px;font-size:10px;font-weight:800;padding:2px 7px;border-radius:7px;color:#fff;background:rgba(0,0,0,.6);backdrop-filter:blur(4px)}
+.msrc.mw{background:rgba(0,174,66,.85)}
+.msrc.pr{background:rgba(250,104,49,.9)}
+.mpaid{position:absolute;right:7px;top:7px;font-size:10px;font-weight:800;padding:2px 7px;border-radius:7px;background:var(--warn);color:#2A1A00}
+.mt{padding:9px 10px 8px;display:flex;flex-direction:column;flex:1;min-width:0}
+.mt a{color:var(--text)}
+.mt b{font-size:13.5px;font-weight:700;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.mt>span{font-size:12px;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mst{display:flex;align-items:center;gap:8px;margin-top:auto;padding-top:6px;font-size:12px;color:var(--muted)}
+.mfav{margin-left:auto;background:none;border:none;color:var(--muted);font-size:20px;line-height:1;cursor:pointer;padding:2px 4px;transition:transform .25s var(--spring)}
+.mfav.on{color:var(--warn)}
+.mfav:active{transform:scale(1.35)}
+.btn2.more{display:block;width:100%;margin-top:12px}
+.btn2.more[hidden]{display:none}
+
+/* ---------- управление каналами ---------- */
+.chline small{color:var(--muted)}
+.chline.off>span{opacity:.45;text-decoration:line-through}
+.chbtn{flex:none;background:var(--surface);border:1px solid var(--line);color:var(--soft);border-radius:10px;padding:6px 12px;font-size:12.5px;font-weight:750;cursor:pointer;transition:transform .2s var(--spring)}
+.chbtn:active{transform:scale(.92)}
+.chbtn.danger{color:var(--danger);border-color:rgba(255,123,123,.35)}
