@@ -51,6 +51,11 @@
         </provider>
     </application>
 
+    <!-- Чтобы найти установленный Creality Cloud (Android 11+) -->
+    <queries>
+        <package android:name="com.cxsw.sdprinter" />
+    </queries>
+
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />

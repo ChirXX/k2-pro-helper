@@ -215,6 +215,15 @@ public class PrinterWidget extends AppWidgetProvider {
         return PendingIntent.getActivity(ctx, code, i, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     }
 
+    static final String CLOUD_PKG = "com.cxsw.sdprinter";
+
+    /** Creality Cloud — для управления не из дома. Не установлен → страница в Google Play. */
+    static Intent cloudIntent(Context ctx) {
+        Intent i = ctx.getPackageManager().getLaunchIntentForPackage(CLOUD_PKG);
+        if (i == null) i = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse("market://details?id=" + CLOUD_PKG));
+        return i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+    }
+
     static String tfmt(double sec) {
         long s = Math.max(0, Math.round(sec)), h = s / 3600, m = s % 3600 / 60;
         return h > 0 ? h + " ч " + m + " мин" : m > 0 ? m + " мин" : s + " с";
@@ -300,7 +309,16 @@ public class PrinterWidget extends AppWidgetProvider {
         // кнопки
         rv.setViewVisibility(R.id.w_buttons, View.VISIBLE);
         rv.setOnClickPendingIntent(R.id.w_refresh, pi(ctx, A_REFRESH, 2));
-        rv.setOnClickPendingIntent(R.id.w_cam, open(ctx, "cam", 11));
+        // принтер не отвечает (скорее всего, мы не дома) → вместо камеры кнопка Creality Cloud
+        boolean away = err != null && "creality".equals(P.optString("type", "creality"));
+        if (away) {
+            rv.setTextViewText(R.id.w_cam, "☁ Cloud");
+            rv.setOnClickPendingIntent(R.id.w_cam, PendingIntent.getActivity(ctx, 12, cloudIntent(ctx),
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
+        } else {
+            rv.setTextViewText(R.id.w_cam, "📷 Камера");
+            rv.setOnClickPendingIntent(R.id.w_cam, open(ctx, "cam", 11));
+        }
         boolean ctl = P.optBoolean("ctl", true) && v != null;
         String s = v == null ? "" : v.optString("s");
         boolean light = ctl && v.has("light");

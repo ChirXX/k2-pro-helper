@@ -96,6 +96,27 @@ public class HomePlugin extends Plugin {
         call.resolve();
     }
 
+    /** Открыть Creality Cloud (или его страницу в Google Play). */
+    @PluginMethod
+    public void openCloud(PluginCall call) {
+        JSObject r = new JSObject();
+        boolean installed = getContext().getPackageManager().getLaunchIntentForPackage(PrinterWidget.CLOUD_PKG) != null;
+        try { getContext().startActivity(PrinterWidget.cloudIntent(getContext())); r.put("ok", true); }
+        catch (Exception e) { r.put("ok", false); }
+        r.put("installed", installed);
+        call.resolve(r);
+    }
+
+    /** Приложение не достучалось до принтера — виджет показывает кнопку Creality Cloud. */
+    @PluginMethod
+    public void offline(PluginCall call) {
+        Context ctx = getContext();
+        lastWidgetState = "";
+        PrinterWidget.prefs(ctx).edit().putString("err", "Нет связи с принтером").apply();
+        PrinterWidget.renderAll(ctx);
+        call.resolve();
+    }
+
     /** Есть ли уже виджет и можно ли предложить закрепить его кнопкой. */
     @PluginMethod
     public void widgetInfo(PluginCall call) {

@@ -90,7 +90,7 @@ function crealityStart(P,withProto){
   ws.onclose=()=>{if(PS.ws!==ws)return;PS.ws=null;clearInterval(PS.timer);clearInterval(PS.hb);
     // часть прошивок не подтверждает подпротокол «wsslicer» — пробуем без него
     if(!opened&&withProto&&!PS.triedNoProto){PS.triedNoProto=true;crealityStart(P,false);return}
-    PS.status=PS.at?'lost':'fail';PS.err=PS.at?'Связь с принтером потеряна':'Принтер не отвечает на порту 9999';renderPrinter();
+    PS.status=PS.at?'lost':'fail';PS.err=PS.at?'Связь с принтером потеряна':'Принтер не отвечает на порту 9999';renderPrinter();homeOffline();
     const g=PS.gen;if(PS.at)setTimeout(()=>{if(g===PS.gen&&!PS.ws&&prVisible()&&PS.status==='lost')prConnect()},5000)};
 }
 let moonObjs=null;
@@ -230,7 +230,7 @@ function renderPrinter(){
   if(PS.status==='connecting')main=`<div class="pr-st"><span class="vstatus busy">Подключаюсь к ${esc(P.host)}…</span></div>`;
   else if(PS.status==='fail'||PS.status==='lost')main=emptyBox(onCell()?'📶':'🔌',onCell()?'Телефон в мобильном интернете':esc(PS.err||'Нет связи'),
     onCell()?`Из мобильного интернета до домашнего адреса ${esc(P.host)} не достучаться — он виден только внутри домашней сети. Подключись к домашнему Wi-Fi или включи VPN домой (см. «Смотреть принтер не из дома» ниже).`
-    :`Проверь, что принтер включён, телефон в той же Wi-Fi сети (или включён VPN домой), а адрес ${esc(P.host)} верный.`,'<button class="btn2 acc" id="pr-retry">Попробовать снова</button>');
+    :`Проверь, что принтер включён, телефон в той же Wi-Fi сети (или включён VPN домой), а адрес ${esc(P.host)} верный.`,'<button class="btn2 acc" id="pr-retry">Попробовать снова</button>'+(P.type==='creality'&&HOME()?'<button class="btn2 more" id="pr-cloud">☁ Управлять через Creality Cloud</button><span class="sub" style="display:block;margin-top:6px">Не дома — открой Creality Cloud: там «Верстак» → твой принтер. Дома всё снова здесь, так быстрее.</span>':''));
   else if(v){
     const [ico,txt]=ST_TXT[v.s]||ST_TXT.idle,job=['printing','paused','preparing','done'].includes(v.s)&&v.file;
     const prevSrc=`http://${P.host}/downloads/original/current_print_image.png?t=${encodeURIComponent(v.file)}`;
@@ -268,6 +268,7 @@ $('my-printer').addEventListener('click',e=>{
   if(t.closest('#pf-cancel')){PS.form=null;prConnect();return}
   if(t.closest('#pr-retry')){prConnect();return}
   const pc=t.closest('[data-pc]');if(pc){onCtl(pc.dataset.pc);return}
+  if(t.closest('#pr-cloud')){openCloud();return}
   if(t.closest('#pr-pip')){pipEnter();return}
   if(t.closest('#pr-widget')){addWidget();return}
   if(t.closest('#pr-camb')){PS.cam=!PS.cam;if(!PS.cam)camStop();renderPrinter();return}
@@ -400,6 +401,12 @@ async function pipEnter(){
   const h=HOME();if(!h)return;
   try{const r=await h.pip();if(!r.ok)toast('Телефон не дал открыть плавающее окно — проверь разрешение «Картинка в картинке» для приложения')}catch(e){}
 }
+// не дома: управление через Creality Cloud (наше приложение работает только в домашней сети — зато быстрее)
+async function openCloud(){
+  const h=HOME();if(!h)return;
+  try{const r=await h.openCloud();if(!r.ok)toast('Не получилось открыть Creality Cloud');else if(!r.installed)toast('Установи Creality Cloud и привяжи к нему принтер')}catch(e){}
+}
+function homeOffline(){const h=HOME();if(h)h.offline().catch(()=>{})}
 async function addWidget(){
   const h=HOME();if(!h)return;
   try{const r=await h.addWidget();
