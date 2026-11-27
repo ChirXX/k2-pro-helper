@@ -8,6 +8,9 @@
 const PR_TYPES=[['creality','Creality K1 / K2 / Hi / Ender-3 V3'],['moonraker','Klipper (Moonraker): Voron, Qidi, Sovol…']];
 const PS={notif:{},job:null,gen:0,form:null,idx:0,ws:null,timer:null,hb:null,data:{},type:'',at:0,status:'off',err:'',cam:false,camPc:null,triedNoProto:false,lastState:'',startedFor:-1};
 const prList=()=>store.get('k2printers',[]);
+// главный экран: нативный мост (HomePlugin.java) и его состояние
+const HOME=()=>window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.Home;
+const HS={pip:false,canPin:false,count:0,inPip:false,auto:false,pipOnLive:false};
 const tfmt=s=>{s=Math.max(0,Math.round(+s||0));const h=Math.floor(s/3600),m=Math.floor(s%3600/60);return h?`${h} ч ${m} мин`:m?`${m} мин`:`${s} с`};
 const num=v=>{const n=parseFloat(v);return isFinite(n)?n:null};
 const deg=v=>v==null?'—':Math.round(v)+'°';
@@ -60,7 +63,7 @@ function prDisconnect(){
   camStop();
 }
 function prConnect(){
-  prDisconnect();PS.gen++;
+  prDisconnect();PS.gen++;homeSync();
   const P=prList()[PS.idx];PS.data={};PS.at=0;PS.err='';PS.lastState='';PS.triedNoProto=false;
   if(!P){PS.status='off';renderPrinter();return}
   PS.type=P.type;PS.status='connecting';renderPrinter();
@@ -118,6 +121,7 @@ function onTelemetry(v){
   if(['printing','paused','preparing'].includes(v.s)&&v.file)PS.job={file:v.file,elapsed:v.elapsed,mm:v.mm};
   else if(v.s!=='done')PS.job=null;
   PS.lastState=v.s;lastView=v;renderPrinter();
+  if(P&&HOME())HOME().status({host:P.host,view:v}).catch(()=>{});
 }
 
 /* уведомление «печать готова» — планируется на время окончания, приходит даже при закрытом приложении */
@@ -143,6 +147,7 @@ const prVisible=()=>$('s-my').classList.contains('active')&&!$('my-printer').hid
 
 /* ---------- камера ---------- */
 function camStop(){
+  clearInterval(PS.camWatch);if(HS.auto){HS.auto=false;HOME()&&HOME().autoPip({on:false}).catch(()=>{})}
   if(PS.camPc){try{PS.camPc.close()}catch(e){}PS.camPc=null}
   const box=$('pr-cam');if(box)box.innerHTML='';
 }
@@ -159,6 +164,7 @@ async function camStart(){
     }else if(kind==='mjpeg'){
       box.innerHTML=`<img alt="Камера принтера" src="http://${esc(P.host)}:8080/?action=stream" onerror="this.parentNode.innerHTML='<div class=cam-msg>Камера не отвечает на порту 8080</div>'">`;
     }else await camWebRTC(P,box);
+    camWatch(box);
   }catch(e){camStop();const net=e.name==='AbortError'||/fetch|network|HTTP/i.test(e.message||'');
     box.innerHTML=`<div class="cam-msg">${net?'Камера не отвечает. Проверь, что камера включена в настройках принтера.':esc(e.message||'Камера не отвечает')}</div>`}
 }
@@ -244,9 +250,11 @@ function renderPrinter(){
       ${P.ctl!==false?ctlHTML(P,v,job):''}
       <div class="pr-foot">${v.light!=null?`<span>💡 Подсветка ${v.light?'вкл.':'выкл.'}</span>`:''}${v.speed!=null&&job?`<span>⚡ Скорость ${Math.round(v.speed)} %</span>`:''}${v.model?`<span>${esc(v.host||v.model)}</span>`:''}</div>
     </div>
-    <button class="btn2 more" id="pr-camb">${PS.cam?'Скрыть камеру':'📷 Показать камеру'}</button><div id="pr-cam" class="pr-cam" hidden></div>`;
+    <button class="btn2 more" id="pr-camb">${PS.cam?'Скрыть камеру':'📷 Показать камеру'}</button><div id="pr-cam" class="pr-cam" hidden></div>
+    ${PS.cam&&HS.pip?'<button class="btn2 more" id="pr-pip">⧉ Камера поверх экрана</button>':''}`;
   }else main=`<div class="pr-st"><span class="vstatus busy">Жду данные от принтера…</span></div>`;
   const html=chipsH+main+`<div class="row"><button class="btn2" id="pr-edit">⚙️ Изменить</button><button class="btn2 del" id="pr-del" style="font-size:14px">Удалить</button></div>
+    ${HS.canPin&&!HS.count?'<button class="btn2 more" id="pr-widget">📌 Виджет на главный экран</button>':''}
     <p class="sub" style="margin-top:12px">${P.ctl!==false?'Управление работает в той же Wi-Fi сети. Остановка печати и смена температур во время печати просят подтверждение.':'Только наблюдение: команды на принтер не отправляются. Включить управление — в «⚙️ Изменить».'}</p>`;
   patchHTML(box,html);
   const cam=$('pr-cam');if(cam){cam.hidden=!PS.cam;if(PS.cam&&!cam.firstChild)camStart()}
@@ -260,9 +268,11 @@ $('my-printer').addEventListener('click',e=>{
   if(t.closest('#pf-cancel')){PS.form=null;prConnect();return}
   if(t.closest('#pr-retry')){prConnect();return}
   const pc=t.closest('[data-pc]');if(pc){onCtl(pc.dataset.pc);return}
+  if(t.closest('#pr-pip')){pipEnter();return}
+  if(t.closest('#pr-widget')){addWidget();return}
   if(t.closest('#pr-camb')){PS.cam=!PS.cam;if(!PS.cam)camStop();renderPrinter();return}
   const c=t.closest('[data-pi]');if(c){PS.idx=+c.dataset.pi;store.set('k2printerIdx',PS.idx);PS.cam=false;prConnect();return}
-  if(t.closest('#pr-del')){const L=prList(),i=PS.idx,[gone]=L.splice(i,1);store.set('k2printers',L);PS.idx=0;prDisconnect();PS.status='off';
+  if(t.closest('#pr-del')){const L=prList(),i=PS.idx,[gone]=L.splice(i,1);store.set('k2printers',L);PS.idx=0;prDisconnect();PS.status='off';homeSync();
     if(L.length)prConnect();else renderPrinter();buzz(15);
     toast(`«${gone.n||gone.host}» удалён`,()=>{const L2=prList();L2.splice(i,0,gone);store.set('k2printers',L2);PS.idx=i;prConnect()});return}
   const sv=t.closest('#pf-save');if(sv){
@@ -273,7 +283,7 @@ $('my-printer').addEventListener('click',e=>{
     PS.form=null;PS.cam=false;buzz(10);prConnect();
   }
 });
-document.addEventListener('visibilitychange',()=>{if(document.hidden)prDisconnect();else if(prVisible()&&PS.form==null)prConnect()});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){if(!HS.inPip)prDisconnect()}else if(prVisible()&&PS.form==null)prConnect()});
 function prShow(){if(!store.get('k2ntAsked',false)&&prList().some(p=>p.nt!==false)&&LN()){store.set('k2ntAsked',true);askNotify()}PS.idx=Math.min(store.get('k2printerIdx',0),Math.max(0,prList().length-1));if(PS.form==null)prConnect();else renderPrinter()}
 function prHide(){prDisconnect();PS.status='off'}
 
@@ -363,3 +373,53 @@ async function onCtl(k){
       const n=+$('sp-r').value;closeSheet();if(x&&x.dataset.x==='1'&&n!==cur)run('speed',n,`Скорость ${n} % ⚡`)});
   }
 }
+
+/* ---------- главный экран: виджет и камера в плавающем окне ----------
+   Виджет (нативный, PrinterWidget.java) сам ходит к принтеру раз в пару минут, а пока приложение открыто —
+   получает свежие данные отсюда. Живое видео в виджет Android не пускает, поэтому видео показываем
+   в окне «картинка в картинке»: оно висит поверх главного экрана и других приложений. */
+function homeSync(){const h=HOME();if(!h)return;
+  h.sync({printers:prList().map(p=>({n:p.n||'',host:p.host,type:p.type,ctl:p.ctl!==false})),idx:PS.idx}).catch(()=>{})}
+async function homeInfo(){const h=HOME();if(!h)return;
+  try{const r=await h.widgetInfo();HS.pip=!!r.pip;HS.canPin=!!r.canPin;HS.count=r.count|0;renderPrinter()}catch(e){}}
+// камера реально показывает картинку → разрешаем авто-переход в окно по кнопке «Домой»
+function camWatch(box){
+  clearInterval(PS.camWatch);const t0=Date.now();
+  PS.camWatch=setInterval(()=>{
+    const m=box.querySelector('img,video');
+    const live=m&&(m.tagName==='VIDEO'?m.readyState>=2:m.naturalWidth>0);
+    if(live){clearInterval(PS.camWatch);camLive()}else if(Date.now()-t0>20000){clearInterval(PS.camWatch);HS.pipOnLive=false}
+  },300);
+}
+function camLive(){
+  const h=HOME();if(!h||!HS.pip)return;
+  HS.auto=true;h.autoPip({on:true}).catch(()=>{});
+  if(HS.pipOnLive){HS.pipOnLive=false;setTimeout(pipEnter,600)}
+}
+async function pipEnter(){
+  const h=HOME();if(!h)return;
+  try{const r=await h.pip();if(!r.ok)toast('Телефон не дал открыть плавающее окно — проверь разрешение «Картинка в картинке» для приложения')}catch(e){}
+}
+async function addWidget(){
+  const h=HOME();if(!h)return;
+  try{const r=await h.addWidget();
+    if(r.ok)toast('Подтверди добавление виджета — и он появится на главном экране 📌');
+    else toast('Добавь вручную: долгое нажатие на пустом месте главного экрана → «Виджеты» → «3D Помощник»')}
+  catch(e){toast('Не получилось добавить виджет')}
+  setTimeout(homeInfo,4000);
+}
+// открыли кнопкой с виджета: «printer» — экран принтера, «cam» — сразу живая камера в плавающем окне
+function homeOpen(what){
+  if(!what)return;
+  go('s-my');const b=[...$('myseg').children].find(x=>x.dataset.v==='printer');if(b&&$('my-printer').hidden)b.click();
+  if(what==='cam'&&prList().length){if(PS.cam&&HS.auto){pipEnter();return}PS.cam=true;HS.pipOnLive=true;renderPrinter()}
+}
+(function(){
+  const h=HOME();if(!h)return;
+  homeSync();homeInfo();
+  h.addListener('pipChange',e=>{HS.inPip=!!e.pip;document.body.classList.toggle('pip',HS.inPip);
+    if(!HS.inPip&&document.hidden)prDisconnect()});
+  h.addListener('open',e=>homeOpen(e.what));
+  h.pending().then(r=>homeOpen(r.what)).catch(()=>{});
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)homeInfo()});
+})();

@@ -328,3 +328,12 @@ code{font-family:ui-monospace,Consolas,monospace;font-size:12.5px;background:var
 .tl i{font-style:normal;font-size:24px}
 .tl:active{transform:scale(.94);border-color:rgba(var(--acc),.5)}
 #tlist .card,#t-fast{scroll-margin-top:calc(112px + env(safe-area-inset-top))}
+
+/* Камера в плавающем окне «картинка в картинке»: прячем всё, кроме видео */
+body.pip{background:#000;overflow:hidden;padding:0}
+body.pip section,body.pip main{animation:none!important;transform:none!important}
+body.pip *{visibility:hidden}
+body.pip #pr-cam,body.pip #pr-cam *{visibility:visible}
+body.pip #pr-cam{position:fixed;inset:0;z-index:9999;margin:0;border-radius:0;background:#000;display:flex;align-items:center;justify-content:center}
+body.pip #pr-cam img,body.pip #pr-cam video{width:100%;height:100%;object-fit:contain}
+body.pip #toast,body.pip #sheet{display:none}

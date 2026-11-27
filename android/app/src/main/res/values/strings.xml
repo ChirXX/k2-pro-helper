@@ -4,4 +4,10 @@
     <string name="title_activity_main">3D Помощник</string>
     <string name="package_name">ee.home.k2prohelper</string>
     <string name="custom_url_scheme">ee.home.k2prohelper</string>
+    <string name="widget_desc">Принтер на главном экране: прогресс, температуры, подсветка, пауза и камера</string>
+    <string name="widget_pic">Снимок принтера</string>
+    <string name="widget_loading">Загрузка…</string>
+    <string name="widget_refresh">Обновить</string>
+    <string name="widget_pause">⏸ Пауза</string>
+    <string name="widget_cam">📷 Камера</string>
 </resources>
