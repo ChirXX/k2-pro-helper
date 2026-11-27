@@ -82,7 +82,7 @@ public class HomePlugin extends Plugin {
         if (v == null || host.isEmpty()) { call.resolve(); return; }
         try {
             JSONObject slim = new JSONObject();
-            for (String k : new String[]{"s", "file", "prog", "left", "noz", "nozT", "bed", "bedT", "box", "light", "err", "cam"})
+            for (String k : new String[]{"s", "file", "prog", "left", "noz", "nozT", "bed", "bedT", "box", "light", "err", "cam", "elapsed", "mm"})
                 if (v.has(k) && !v.isNull(k)) slim.put(k, v.get(k));
             String key = host + slim.optString("s") + slim.optString("file") + slim.optBoolean("light");
             long now = System.currentTimeMillis();
@@ -115,6 +115,17 @@ public class HomePlugin extends Plugin {
         PrinterWidget.prefs(ctx).edit().putString("err", "Нет связи с принтером").apply();
         PrinterWidget.renderAll(ctx);
         call.resolve();
+    }
+
+    /** Печати, которые виджет заметил завершёнными, пока приложение было закрыто. Забираем и очищаем. */
+    @PluginMethod
+    public void takePrints(PluginCall call) {
+        Context ctx = getContext();
+        JSObject r = new JSObject();
+        try { r.put("prints", new com.getcapacitor.JSArray(PrinterWidget.prefs(ctx).getString("prints", "[]"))); }
+        catch (Exception e) { r.put("prints", new com.getcapacitor.JSArray()); }
+        PrinterWidget.prefs(ctx).edit().remove("prints").apply();
+        call.resolve(r);
     }
 
     /** Есть ли уже виджет и можно ли предложить закрепить его кнопкой. */

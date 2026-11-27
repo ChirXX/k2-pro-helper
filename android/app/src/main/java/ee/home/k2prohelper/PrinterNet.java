@@ -91,6 +91,8 @@ final class PrinterNet {
         put(v, "prog", prog);
         double left = !Double.isNaN(n(d, "printLeftTime")) ? n(d, "printLeftTime") : n(d, "printTimeLeft");
         put(v, "left", left);
+        put(v, "elapsed", n(d, "printJobTime"));
+        put(v, "mm", n(d, "usedMaterialLength"));
         put(v, "noz", n(d, "nozzleTemp"));
         put(v, "nozT", n(d, "targetNozzleTemp"));
         put(v, "bed", n(d, "bedTemp0"));
@@ -129,6 +131,8 @@ final class PrinterNet {
         v.put("file", file.substring(file.lastIndexOf('/') + 1));
         v.put("prog", Math.round(p * 1000) / 10.0);
         if (p > 0.02 && el > 0) v.put("left", el / p - el);
+        put(v, "elapsed", el);
+        put(v, "mm", n(ps, "filament_used"));
         if (ex != null) { put(v, "noz", n(ex, "temperature")); put(v, "nozT", n(ex, "target")); }
         if (hb != null) { put(v, "bed", n(hb, "temperature")); put(v, "bedT", n(hb, "target")); }
         v.put("err", "error".equals(state) ? 1 : 0);

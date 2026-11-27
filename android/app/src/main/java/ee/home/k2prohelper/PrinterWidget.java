@@ -169,6 +169,7 @@ public class PrinterWidget extends AppWidgetProvider {
                 }
             }
             JSONObject v = PrinterNet.status(type, host);
+            record(ctx, P, state(ctx), v);
             saveState(ctx, host, v);
             // снимок обновляем не чаще раза в минуту — он тяжелее остального
             if (cmd == null || System.currentTimeMillis() - p.getLong("picAt", 0) > 60000) {
@@ -179,6 +180,43 @@ public class PrinterWidget extends AppWidgetProvider {
         } catch (Exception e) {
             p.edit().putString("err", "Нет связи с принтером").apply();
         }
+    }
+
+    /**
+     * Журнал без открытого приложения: печать закончилась или прервалась — кладём запись в очередь,
+     * приложение заберёт её при следующем запуске (HomePlugin.takePrints) и уберёт дубли.
+     */
+    static void record(Context ctx, JSONObject P, JSONObject prev, JSONObject v) {
+        try {
+            String s = v.optString("s"), file = v.optString("file");
+            JSONObject src = null;
+            String res = null;
+            if ("done".equals(s) && !file.isEmpty() && v.optDouble("elapsed", 0) > 60) { src = v; res = "ok"; }
+            else if (("stopped".equals(s) || "error".equals(s)) && prev != null && active(prev) && !prev.optString("file").isEmpty()) {
+                src = prev; res = "error".equals(s) ? "fail" : "stop";
+            }
+            if (src == null) return;
+            String host = P.optString("host"), f = src.optString("file");
+            double dur = src.optDouble("elapsed", 0);
+            String key = host + "|" + f + "|" + Math.round(dur / 600);
+            SharedPreferences p = prefs(ctx);
+            JSONArray keys = new JSONArray(p.getString("recKeys", "[]"));
+            for (int i = 0; i < keys.length(); i++) if (key.equals(keys.optString(i))) return;
+            JSONObject e = new JSONObject();
+            e.put("at", System.currentTimeMillis());
+            e.put("f", f);
+            e.put("h", host);
+            e.put("pr", P.optString("n", "").isEmpty() ? host : P.optString("n"));
+            e.put("dur", Math.round(dur));
+            e.put("mm", Math.round(src.optDouble("mm", 0)));
+            e.put("res", res);
+            JSONArray L = new JSONArray(p.getString("prints", "[]"));
+            L.put(e);
+            keys.put(key);
+            JSONArray k2 = new JSONArray();
+            for (int i = Math.max(0, keys.length() - 50); i < keys.length(); i++) k2.put(keys.get(i));
+            p.edit().putString("prints", L.toString()).putString("recKeys", k2.toString()).apply();
+        } catch (Exception ignored) {}
     }
 
     /** Пока печать идёт — запланировать следующее обновление; иначе хватает системного раза в 30 минут. */
